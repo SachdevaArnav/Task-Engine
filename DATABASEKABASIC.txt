@@ -1,0 +1,86 @@
+|powerpoint|MS Powerpoint|MicroSoft Powerpoint|.pptx|pptx|.ppt|ppt|MS Presentation|Microsoft office powerpoint|Microsoft presentation|:powerpnt
+|MS word|microsoft word|word|.docx|docx|.doc|doc|MicroSoft office word|ms wordprocessor|ms word processor|microsoft wordprocessor|microsoft word processor|microsoft office wordprocessor|microsoft office word processor:winword
+|ms excel|microsoft excel|MicroSoft office excel|.xlsx|xlsx|.xls|xls|MS Spreadsheet|Microsoft spreadsheet|:excel
+|settings|settings app|:ms-settings:home
+|bluetooth settings|bluetooth|:ms-settings:bluetooth
+|Access work|Access school|Access work settings|Access school settings|:ms-settings:workplace
+|Email accounts|app accounts|:ms-settings:emailandaccounts
+|Family and other people|Family and other people settings|:ms-settings:otherusers
+|my info|my details|:ms-settings:yourinfo
+|Set up a kiosk|:ms-settings:assignedaccess
+|Sign in options|:ms-settings:signinoptions
+|Sync your settings|Sync device  settings|Sync windows  settings|:ms-settings:sync
+|Sync your  files settings|Sync device  files settings|Sync windows files  settings|Sync your  files|Sync device  files|Sync windows files|:ms-settings:backup
+|set my face as windows sign in|set face as sign in|set face lock for windows|set face lock|face lock|:ms-settings:signinoptions-launchfaceenrollment
+|Set fingertouch as windows sign in|set fingertouch as sign in|set finger lock for windows|set finger lock|finger lock|:ms-settings:signinoptions-launchfingerprintenrollment
+|control panel|:control
+|ms paint|microsoft paint|paint|:Mspaint
+|microsoft camera|camera|ms camera|ms windows camera|microsoft windows camera|windows camera|:microsoft.windows.camera:home
+|photos|MS Photos|MicroSoft photos|:ms-photos:home
+|ms internet explorer|MS explorer|MicroSoft explorer|internet explorer|microsoft internet explorer|:iexplore
+|file explorer|MS manager|MicroSoft manager|windows explorer|file manager|windows manager|:explorer
+|google|google search engine|google website|:https://www.google.com
+|google chrome|chrome|google browser|chrome browser|:chrome
+|ms edge|Microsoft edge|edge browser|edge|:msedge.exe
+|ms outlook|Microsoft Outlook|MS Office Outlook|Microsoft Office Outlook|.pst|pst|.ost|ost|Outlook|:outlook
+|MS OneNote|OneNote|Microsoft OneNote|Ms Office OneNote|Microsoft Office OneNote|.one|:onenote
+|OneDrive|MS OneDrive|Microsoft OneDrive|microsoft office OneDrive|:onedrive
+|onedrive live|onedrive live website|onedrive live login|onedrive live login page|:https://onedrive.live.com/login
+|Publisher|MS publisher|Microsoft publisher|Ms office Publisher|Microsoft office publisher|ms pub|.pub|:mspub
+|Access|MS Access|Microsoft Access|Ms office Access|Microsoft office Access|accdb|.accdb|laccdb|.laccdb|accdw|.accdw|accdc|.accdc|adp|.adp|adn|.adn|accda|.accda|accdr|.accdr|accdt|.accdt|mdb|.mdb|mda|.mda|mdw|mdw|mdf|.mdf|mde|.mde|accde|.accde|mam|.mam|maq|.maq|mar|.mar|.mat|maf|.maf|:msaccess
+|Ms Teams|Microsoft Teams|Teams|Ms office Teams|Microsoft Office Teams|:teams.exe
+|SharePoint|MS sharepoint|Microsoft sharepoint|MS Office Sharepoint|Microsoft office Sharepoint|:sharepoint
+|skype|ms Skype|microsoft Skype|ms office skype|microsoft office skype|Skype Business|Skype for Business|Ms Skype Business|Microsoft Skype Business|Ms Skype for Business|Microsoft Skype for Business|ms office skype business|Ms office Skype for business|Microsoft office skype Business|Microsoft office skype for Business|:skype
+|Microsoft lync|ms lync|microsoft office lync|ms office lync|:lync.exe
+|Visio|MS Visio|Microsoft visio|MS office visio|microsoft office visio|vsdx|.vsdx|vsd|.vsd|vdx|.vdx|:visio.exe
+|Ms Project|Microsoft project|ms office project|Mircosoft office project|mpp|.mpp|:winproj.exe
+|Infopath|microsoft infopath|ms infopath|ms office infopath|microsoft office infopath|xsn|.xsn|:infopath.exe
+|picture manager|office picture manager|ms office picture manager|microsoft office picture manager|ms picture manager|microsoft office picture manager|:ois.exe
+|bing|bing search engine|:https://www.bing.com
+|yahoo|yahoo search engine|yahoo Website|yahoo search|:https://www.yahoo.com/
+|google mail|gmail|google mail website|gmail website|:https://mail.google.com/
+|youtube|run youtube|youtube main page|:https://www.youtube.com
+|google adsense|google ad sense|google ads|:https://adsense.google.com
+|google Ads|google ad|google advertisement|google advertisements|:https://ads.google.com
+|google maps|google maps website|google maps main page|gmaps|:https://maps.google.com
+|google cloud|google cloud website|google cloud service|cloud service by google|gcloud|:https://cloud.google.com
+|google photos|google photos website|:https://photos.google.com
+|google pay|google payment|google payment option|online payment using google|:https://pay.google.com
+|google drive|gdrive|google drive website|gdrive website|:https://drive.google.com
+|google shopping|:https://shopping.google.com
+|google translate|google translator|google translate website|google translator website|gtranslate|gtranslate website|gtranslator website|:https://trnaslate.google.com
+|google earth|google satellite image|google satellite maps|google satellite map|google 3d map|google 3d maps|google globe|:https://earth.google.com
+|blogger website|blogger blogging website|blogger blogging|:https://www.blogger.com
+|google assistant|virtual assistant by google|:https://assistant.google.com
+|google calendar|calendar by google|google calendar website|:https://calendar.google.com
+|google docs|google docs website|google word processor|google wordprocessor|google wordprocessor website|google word processor website|google document editor|:https://docs.google.com/document
+|google sheets|google spreadsheet|google spreadsheets|google sheets website|google spreadsheet website|google spreadsheets website|google spreadsheet editor|:https://docs.google.com/spreadsheets
+|google slides|google presentation|google presentations|google slides website|google presentation website|google presentations website|google presentation editor|:https://docs.google.com/presentation
+|google books|books by google|online books by google|:https://books.google.com
+|google duo|google duo website|:https://duo.google.com
+|google meet|google meet website|google online calling|google video calling|google video conferencing|:https://meet.google.com
+|youtube music|youtube music website|:https://music.youtube.com
+|yahoo mail|yahoo mail website|:https://mail.yahoo.com
+|aol|aol website|:https://www.aol.com
+|aol mail|aol mail website|:https://mail.aol.com
+|yahoo calendar|yahoo calendar website|:http://calendar.yahoo.com
+|yahoo notepad|yahoo notepad website|yahoo text editor|text editor by yahoo|:https://notepad.yahoo.com
+|hotmail|hotmail online|hotmail website|hotmail online website|outlook live|outlook online|outlook live website|outlook online website|:https://outlook.live.com/mail/about/index en.html
+|aol search|aol search engine|:https://search.aol.com/
+|onesearch|one search|onesearch website|one search website|:https://www.onesearch.com/
+|yahoo news|yahoo news website:https://news.yahoo.com/
+|Huffpost|:https://www.huffpost.com
+|notepad|:notepad.exe
+|wordpad|:wordpad.exe
+|netflix|netflix app|netflix ott|:netflix:///
+|netflix website|netflix ott website|:https://www.netflix.com
+|flipkart|flipkart website|flipkart online shopping|flipkart shopping|:https://www.flipkart.com
+|amazon|amazon website|amazon online shopping|amazon shopping|:https://www.amazon.in
+|flipkart seller|flipkart selling|flipkart selling online|flipkart seller website|flipkart seller webpage|selling on flipkart|selling at flipkart|:https://seller.flipkart.com
+|flipkart plus|flipkart plus website|:https://www.flipkart.com/plus/all-offers
+|amazon prime website|amazon prime video website|prime video website|:https://www.primevideo.com
+|amazon prime|amazon prime video|prime video|:PrimeVideo:///
+|Spotify|Spotify music|Spotify app|Spotify music app|:Spotify:///
+|Spotify website|Spotify music website|:https://open.spotify.com
+|whatsapp|whatsapp app|whatsapp application|:Whatsapp:///
+|whatsapp website|whatsapp web|web whatsapp|:https://web.whatsapp.com
