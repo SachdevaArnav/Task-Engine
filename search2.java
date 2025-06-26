@@ -81,39 +81,90 @@ public class search2 extends SimpleFileVisitor<Path> {
     // alphabetical order) and remving the token from the name/preName once used
     public int FuzzyScoring(Path file, String query) {
         int score = 0;
-        String name = " " + file.getFileName().toString() + " ";
-        String preName = " " + file.getParent().toString().replaceAll(Pattern.quote(File.separator), " ") + " ";
-        String[] Tokens = query.replaceAll("[^a-zA-Z0-9 ]+", " ").split(" ");
+        String name = " " + file.getFileName().toString().replaceAll("[^a-zA-Z0-9. ]", " ") + " ";
+        String preName = " " + file.getParent().toString().replaceAll("[^a-zA-Z0-9 ]", " ") + " ";
+        String[] Tokens = query.replaceAll("[^a-zA-Z0-9 ]", " ").split(" ");
         Arrays.sort(Tokens, Comparator.comparing(s -> s.length()));
         for (String token : Tokens) {
-            if ((!token.equals("")) && (!name.replaceAll("[^ ]", "").equals(""))) {
-                if (name.toLowerCase().contains(" " + token.toLowerCase() + " ")) {
+            if ((!token.equals("")) && (!name.replaceAll(" ", "").equals(""))) {
+                if (name.matches("(?i).*" + token + ".*")) {
                     score += 70;
-                    name = " " + name.replace("(?!)" + token, "") + " ";
-                    if (name.replaceAll("[^ ]", "").equals("")) {
+                    name = " " + name.replaceFirst("(?i)\\b" + Pattern.quote(token) + "\\b", "") + " ";
+                    String quickName;
+                    if (name.contains(".")) {
+                        quickName = name.split(".(?=[^.]*$)")[0];
+                    } else {
+                        quickName = name;
+                    }
+                    if (quickName.replaceAll(" ", "").equals("")) {
                         score += 100;
                     }
+                    // this regex is for removing the extension while checking for file name +100
                 } else if (name.toLowerCase().contains(token.toLowerCase())) {
                     score += 55;
-                    name = " " + name.replace("(?!)" + token, "") + " ";
-                } else if (preName.toLowerCase().contains(" " + token.toLowerCase() + " ")) {
+                    name = " " + name.replaceFirst("(?i)" + Pattern.quote(token), "") + " ";
+                } else if (DL_light(name.toLowerCase(), token.toLowerCase())) {
+                    score += 55;
+                } else if (preName.matches("(?i).*" + token + ".*")) {
                     score += 60;
-                    preName = " " + preName.replace("(?!)" + token, "") + " ";
-                    if (preName.replaceAll("[^ ]", "").equals("")) {
+                    preName = " " + preName.replaceFirst("(?i)\\b" + Pattern.quote(token) + "\\b", "") + " ";
+                    if (preName.replaceAll(" ", "").equals("")) {
                         score += 200;
                     }
                 } else if (preName.toLowerCase().contains(token.toLowerCase())) {
                     score += 45;
-                    preName = " " + preName.replace("(?!)" + token, "") + " ";
+                    preName = " " + preName.replaceFirst("(?i)" + Pattern.quote(token), "") + " ";
+                } else if (DL_light(preName.toLowerCase(), token.toLowerCase())) {
+                    score += 45;
                 }
             }
         }
-        String[] pieces = file.toString().split("[^a-zA-Z0-9]");
+        String[] pieces = file.toString().split(Pattern.quote(File.separator));// ("[^a-zA-Z0-9]"
         int parts = pieces.length;
         if (parts > 8) {
             score -= (parts - 8) * 25;
         }
         return score;
+    }
+
+    public boolean DL_light(String a, String b) {
+        int i = 0, j = 0, edits = 0;
+        int threshold;
+        if (a.length() <= 5) {
+            threshold = 1;
+        } else if (a.length() <= 8) {
+            threshold = 2;
+        } else if (a.length() <= 15) {
+            threshold = 4;
+        } else {
+            threshold = 6;
+        }
+        while (i < a.length() && j < b.length()) {
+            if (a.charAt(i) == b.charAt(j)) {
+                i++;
+                j++;
+            } else {
+                edits++;
+                if (edits > threshold)
+                    return false;
+                // checking for transposition only adjacent swaps
+                if (i + 1 < a.length() && j + 1 < b.length() && a.charAt(i) == b.charAt(j + 1)
+                        && a.charAt(i + 1) == b.charAt(j)) {
+                    i += 2;
+                    j += 2;
+                } else if (a.length() > b.length()) {
+                    i++;
+                } else if (a.length() < b.length()) {
+                    j++;
+                } else {
+                    i++;
+                    j++;
+                }
+            }
+        }
+        if (i < a.length() || j < b.length())
+            edits++;
+        return true;
     }
 
     public TreeMap<Integer, List<Path>> getScore() {
