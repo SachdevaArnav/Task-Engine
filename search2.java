@@ -173,7 +173,7 @@ public class search2 extends SimpleFileVisitor<Path> {
                         quickName = " " + quickName.replaceFirst("(?i)" + Pattern.quote(token), "") + " ";
                     } else if (DL_light(quickName.toLowerCase(), token.toLowerCase())) {
                         score += 55;
-                    } else if (preName.matches("(?i).*" + token + ".*")) {
+                    } else if (preName.matches("(?i).*\\b" + token + "\\b.*")) {
                         score += 60;
                         preName = " " + preName.replaceFirst("(?i)\\b" + Pattern.quote(token) + "\\b", "") + " ";
                         if (preName.replaceAll(" ", "").equals("")) {
@@ -185,12 +185,14 @@ public class search2 extends SimpleFileVisitor<Path> {
                     } else if (DL_light(preName.toLowerCase(), token.toLowerCase())) {
                         score += 45;
                     }
+
                 }
             }
         }
         if (score > 0) {
             for (LocalDateTime dt : TimeInLocal(file)) {
-                if (dt != null && (truncate(dt, datetime.grain)).equals(truncate(datetime.start, datetime.grain))) {
+                if (dt != null && datetime.start != null
+                        && (truncate(dt, datetime.grain)).equals(truncate(datetime.start, datetime.grain))) {
                     score += 70;
                     break;
                 }
@@ -231,44 +233,56 @@ public class search2 extends SimpleFileVisitor<Path> {
         return TimeArray;
     }
 
-    public boolean DL_light(String a, String b) {
+    public boolean DL_light(String quickname, String b) {
         int i = 0, j = 0, edits = 0;
         int threshold;
-        if (a.length() <= 5) {
-            threshold = 1;
-        } else if (a.length() <= 8) {
-            threshold = 2;
-        } else if (a.length() <= 15) {
-            threshold = 4;
-        } else {
-            threshold = 6;
-        }
-        while (i < a.length() && j < b.length()) {
-            if (a.charAt(i) == b.charAt(j)) {
-                i++;
-                j++;
+        boolean match = false;
+        for (String a : quickname.strip().split("[^A-Za-z0-9]+")) {
+            if (b.length() - a.length() > 2) {
+                continue;
             } else {
-                edits++;
-                if (edits > threshold)
-                    return false;
-                // checking for transposition only adjacent swaps
-                if (i + 1 < a.length() && j + 1 < b.length() && a.charAt(i) == b.charAt(j + 1)
-                        && a.charAt(i + 1) == b.charAt(j)) {
-                    i += 2;
-                    j += 2;
-                } else if (a.length() > b.length()) {
-                    i++;
-                } else if (a.length() < b.length()) {
-                    j++;
+                if (a.length() <= 5) {
+                    threshold = 1;
+                } else if (a.length() <= 8) {
+                    threshold = 2;
+                } else if (a.length() <= 15) {
+                    threshold = 4;
                 } else {
-                    i++;
-                    j++;
+                    threshold = 6;
+                }
+                while (i < a.length() && j < b.length()) {
+                    if (a.charAt(i) == b.charAt(j)) {
+                        i++;
+                        j++;
+                    } else {
+                        edits++;
+                        if (edits > threshold) {
+                            break;
+                        }
+                        // checking for transposition only adjacent swaps
+                        if (i + 1 < a.length() && j + 1 < b.length() && a.charAt(i) == b.charAt(j + 1)
+                                && a.charAt(i + 1) == b.charAt(j)) {
+                            i += 2;
+                            j += 2;
+                        } else if (a.length() > b.length()) {
+                            i++;
+                        } else if (a.length() < b.length()) {
+                            j++;
+                        } else {
+                            i++;
+                            j++;
+                        }
+                    }
+                }
+                if (i < a.length() || j < b.length())
+                    edits += (a.length() - i) + (b.length() - j);
+                match = edits <= threshold;
+                if (match) {
+                    break;
                 }
             }
         }
-        if (i < a.length() || j < b.length())
-            edits++;
-        return true;
+        return match;
     }
 
     public static LocalDateTime truncate(LocalDateTime dt, ChronoUnit unit) {

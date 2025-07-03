@@ -14,11 +14,7 @@ public class sending_query {
         Scanner input = new Scanner(System.in);
         System.out.println("Related text");
         String x = input.nextLine();
-        System.out.println("date-time (it should be like 'Jan 15, 2019 20:12')");
-        // this is getting case sensitive tried all combinations
-        DateTimeQueryPraser.ParsedDateTime datetime = DateTimeQueryPraser.parse(input.nextLine().strip());
-        // DateTimeFormatter.ofPattern("MMM dd, yyyy HH", Locale.ENGLISH));
-        // String date = input.nextLine();
+        DateTimeQueryPraser.ParsedDateTime datetime = DateTimeQueryPraser.parse(x);
         File[] roots = File.listRoots();
         search2 visitor = new search2(x, datetime);
         // String[] timeStrings = { "today", "yesterday", "week", "month", "year",
@@ -26,29 +22,15 @@ public class sending_query {
         // "newest", "old" };
         try {
             for (File Drive : roots) {
-                // String Drive = "D:\\OneDrive\\Desktop\\Java\\ARS_Platform\\.vscode";
+                // String Drive =
+                // "A:\\Python\\Lib\\site-packages\\jsonschema_specifications-2025.4.1.dist-info";
                 Files.walkFileTree((Drive).toPath(), visitor);
             }
             TreeMap<Integer, List<Path>> ScoreBoard = visitor.getScore();
             List<Path> ScoreList = ScoreBoard.get(ScoreBoard.lastKey());
             System.out.println(ScoreList);
-            // if (ScoreList.size() >= 1) {// >1
-            // System.out.println("Tell more info for finding the exact file");
-            // String info = input.nextLine().toLowerCase();
-            // for (String timestr : timeStrings) {
-            // if (info.contains(timestr)) {
-            // for (int i = 0; i < ScoreList.size(); i++) {
-            // Map<String, Object> attr = Files.readAttributes(ScoreList.get(i),
-            // "lastModifiedTime,lastAccessTime");
-            // ZonedDateTime zd =
-            // ZonedDateTime.parse(attr.get("lastModifiedTime").toString(),
-            // DateTimeFormatter.ISO_INSTANT);
-            // Date date = Date.from(zd.toInstant());
-            // }
-            // }
-            // }
-            // }
-            // System.out.println("");
+            // System.out.println(ScoreBoard.lastKey());
+
         } catch (Exception e) {
             System.err.print(e);
         }
