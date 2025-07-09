@@ -12,9 +12,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class search2 extends SimpleFileVisitor<Path> {
@@ -22,49 +25,45 @@ public class search2 extends SimpleFileVisitor<Path> {
     String query;
     DateTimeQueryPraser.ParsedDateTime datetime;
     TreeMap<Integer, List<Path>> ScoreBoard = new TreeMap<>();
-    private static final Map<String, List<String>> extension_map = Map.ofEntries(
+    Pattern UUID = Pattern.compile("[a-fA-F0-9]{8}-([a-fA-F0-9]{4}-){3}[a-fA-F0-9]{12}");
+    // ppt and pptx and like r not connected together and that thing is not added
+    // for checking file extension correct that
+    private static final List<Set<String>> extensionGroups = List.of(
+            // Documents (merged: word, text, openoffice, latex, log, document)
+            Set.of("doc", "docx", "odt", "rtf", "txt", "pages", "wpd", "pdf", "log", "tex", "latex", "text", "notes",
+                    "notepad", "openoffice", "word", "document"),
 
-            // Documents
-            Map.entry("pdf", List.of("pdf")),
-            Map.entry("word", List.of("doc", "docx", "odt", "rtf", "txt", "pages", "wpd")),
-            Map.entry("text", List.of("txt", "rtf")),
-            Map.entry("openoffice", List.of("odt")),
-            Map.entry("latex", List.of("tex")),
-            Map.entry("notes", List.of("txt", "rtf")),
-            Map.entry("log", List.of("log")),
-            Map.entry("document", List.of("doc", "docx", "odt", "rtf", "txt", "pages", "wpd", "pdf")),
-            Map.entry("notepad", List.of("txt", "rtf")),
             // Presentations
-            Map.entry("presentation", List.of("ppt", "pptx", "key")),
-            Map.entry("powerpoint", List.of("ppt", "pptx")),
+            Set.of("ppt", "pptx", "key", "presentation", "slides"),
 
-            // Spreadsheets
-            Map.entry("excel", List.of("xls", "xlsx", "csv")),
-            Map.entry("spreadsheet", List.of("xls", "xlsx", "csv", "dif")),
+            // Spreadsheets (merged: excel + spreadsheet)
+            Set.of("xls", "xlsx", "csv", "dif", "excel", "spreadsheet"),
 
-            // Images
-            Map.entry("image", List.of("jpg", "jpeg", "png", "gif", "bmp", "psd", "tiff", "ico")),
-            Map.entry("photo", List.of("jpg", "jpeg", "png", "gif")),
-            Map.entry("screenshot", List.of("png", "jpg")),
+            // Images (merged: screenshot + photo + image)
+            Set.of("jpg", "jpeg", "png", "gif", "bmp", "psd", "tiff", "ico", "image", "img", "photo", "screenshot"),
 
             // Audio
-            Map.entry("audio", List.of("mp3", "m4a", "aac", "wav", "flac", "aiff", "mid", "midi")),
+            Set.of("mp3", "m4a", "aac", "wav", "flac", "aiff", "mid", "midi", "audio"),
 
             // Video
-            Map.entry("video", List.of("mp4", "mov", "avi", "flv", "mpeg", "mkv")),
+            Set.of("mp4", "mov", "avi", "flv", "mpeg", "mkv", "video"),
 
-            // Compressed
-            Map.entry("archive", List.of("zip", "rar", "tar", "7z", "gz")),
-            Map.entry("compressed", List.of("zip", "rar", "7z", "tar", "gz")),
+            // Archive / Compressed
+            Set.of("zip", "rar", "tar", "7z", "gz", "archive", "compressed"),
 
-            // Code / Programming
-            Map.entry("code", List.of("java", "py", "cpp", "c", "js", "html", "css", "xml", "json", "sql")),
-            Map.entry("java", List.of("java", "class", "jar")),
-            Map.entry("python", List.of("py")),
-            Map.entry("web", List.of("html", "css", "js")),
+            // Code / Programming (merged: code, java, python, web)
+            Set.of("java", "class", "jar", "py", "python", "cpp", "c", "js", "html", "css", "xml", "json", "sql",
+                    "code", "web"),
 
             // Email
-            Map.entry("email", List.of("eml", "msg")));
+            Set.of("eml", "msg", "email"));
+
+    public static final Set<String> genericNames = new HashSet<>();
+    static {
+        for (Set<String> s : extensionGroups) {
+            genericNames.addAll(s);
+        }
+    }
 
     public search2(
             String query, DateTimeQueryPraser.ParsedDateTime dateTime) {
@@ -72,23 +71,51 @@ public class search2 extends SimpleFileVisitor<Path> {
         this.datetime = dateTime;
     }
 
+    String[] goodextList = {
+            "doc", "docx", "odt", "rtf", "txt", "pages", "wpd", "pdf", "ppt", "pptx", "key",
+            "xls", "xlsx", "csv", "dif", "jpg", "jpeg", "png", "gif", "bmp", "psd", "tiff", "ico",
+            "mp3", "m4a", "aac", "wav", "flac", "aiff", "mid", "midi",
+            "mp4", "mov", "avi", "flv", "mpeg", "mkv"
+    };
+    String[] blacklist = {
+            "AppData", "Roaming", "bin", "build", "cache", "logs",
+            ".git", ".svn", ".config", ".terraform", ".npm", "temp",
+            "tmp", ".gradle", ".vscode", "release", "node_modules", "venv",
+            "__pycache__", "$RECYCLE.BIN", "platforms", "res", "layout", "build-tools", "ndk", "emulator",
+            "gen", "obj", "plugins", "tzdata"
+    };
+
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attr) {
-        int score = FuzzyScoring(file);
-        if (score > 0) {
-            ScoreBoard.computeIfAbsent(score, k -> new ArrayList<>()).add(file);
+        if (!query.matches("(?i).*folder.*") && !query.matches("(?i).*directory.*")
+                && (file.getFileName().toString().replaceAll("[^A-Za-z0-9]", "").length() <= 35)
+                && (Files.isRegularFile(file))) {
+            Matcher UUmatch = UUID.matcher(file.getFileName().toString());
+            if (UUmatch.find()) {
+                return FileVisitResult.SKIP_SUBTREE;
+            }
+            int score = FuzzyScoring(file);
+            if (score > 0) {
+                ScoreBoard.computeIfAbsent(score, k -> new ArrayList<>()).add(file);
+            }
         }
         return FileVisitResult.CONTINUE;
     }
 
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attr) {
-        String[] blacklist = {
-                "AppData", "Roaming", "bin", "build", "cache", "logs",
-                ".git", ".svn", ".config", ".terraform", ".npm", "temp",
-                "tmp", ".gradle", ".vscode", "release", "node_modules", "venv",
-                "__pycache__", "$RECYCLE.BIN"
+        Pattern[] uselessFolders = {
+                Pattern.compile("android-\\d+"),
+                Pattern.compile("drawable-.*"),
+                Pattern.compile("^(?i)(java|jdk|python|gcc|node|openjdk|dotnet)[-+][\\d\\.]+.*")
         };
+        for (int i = 0; i < uselessFolders.length; i++) {
+            if (dir.getFileName() != null) {
+                if (uselessFolders[i].matcher(dir.getFileName().toString()).find()) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+            }
+        }
         for (String a : blacklist) {
             if (dir.getFileName() != null) {
                 if (dir.getFileName().toString().equalsIgnoreCase(a)) {
@@ -116,10 +143,12 @@ public class search2 extends SimpleFileVisitor<Path> {
 
     @Override
     public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-        if (dir.getFileName() != null) {
-            int score = FuzzyScoring(dir);
-            if (score > 0) {
-                ScoreBoard.computeIfAbsent(score, k -> new ArrayList<>()).add(dir);
+        if (dir.getFileName() != null && dir.getFileName().toString().replaceAll("[^A-Za-z0-9]", "").length() <= 30) {
+            if (query.matches("(?i).*folder.*") || query.matches("(?i).*dir.*")) {
+                int score = FuzzyScoring(dir);
+                if (score > 0) {
+                    ScoreBoard.computeIfAbsent(score, k -> new ArrayList<>()).add(dir);
+                }
             }
         }
         return FileVisitResult.CONTINUE;
@@ -136,6 +165,7 @@ public class search2 extends SimpleFileVisitor<Path> {
         String quickName;
         String ext = "";
         boolean extMatched = true;
+        boolean AtleastOneExact = false;
         if (Files.isRegularFile(file)) {
             if (name.contains(".")) {
                 String[] nameq = name.split("\\.(?=[^\\.]*$)");
@@ -149,61 +179,138 @@ public class search2 extends SimpleFileVisitor<Path> {
             quickName = name.replaceAll("\\.", " ");
         }
         String preName = " " + file.getParent().toString().replaceAll("[^a-zA-Z0-9 ]", " ") + " ";
-        String[] Tokens = query.replaceAll("[^a-zA-Z0-9 ]", " ").split(" ");
-        Arrays.sort(Tokens, Comparator.comparing(s -> s.length()));
+        String[] Tokens1 = query.replaceAll("[^a-zA-Z0-9 ]", " ").split(" ");
+        Arrays.sort(Tokens1, Comparator.comparing(s -> s.length()));
+        String[] Tokens = new String[Tokens1.length];
+        for (int i = 0; i < Tokens1.length; i++) {
+            Tokens[i] = Tokens1[Tokens1.length - 1 - i];
+        }
+        Tokens1 = null;
+        boolean safeExtUsed = extMatched;
         for (String token : Tokens) {
-            if ((!token.equals(""))) {
-                if (!extMatched && extension_map.containsKey(token)) {
-                    for (String e : extension_map.get(token)) {
-                        if (e.equalsIgnoreCase(ext)) {
-                            score += 70;
-                            extMatched = true;
+            if (token != null && (!token.equals(""))) {
+                if (!safeExtUsed) {
+                    if (token.equalsIgnoreCase(ext)) {
+                        score += 70;
+                    } else {
+                        for (Set<String> value : extensionGroups) {
+                            if (!extMatched && value.contains(token.toLowerCase())) {
+                                if (value.contains(ext.toLowerCase())) {
+                                    score += 60;
+                                    extMatched = true;
+                                    safeExtUsed = true;
+                                    break;
+                                }
+                                for (String a : quickName.split("[^A-Za-z]")) {
+                                    if (value.contains(a.toLowerCase())) {
+                                        score += 60;
+                                        safeExtUsed = true;
+                                        break;
+                                    }
+                                }
+                            }
                         }
                     }
-                } else if (!quickName.replaceAll(" ", "").equals("")) {
+                }
+                String quickNameClean = quickName.replaceAll("[0-9 ]", "");
+                String tokenClean = token.replaceAll("[0-9 ]", "");
+
+                if (quickName.replaceAll(" ", "").length() > 2) {
                     if (quickName.matches("(?i).*\\b" + token + "\\b.*")) {
                         score += 70;
                         quickName = " " + quickName.replaceFirst("(?i)\\b" + Pattern.quote(token) + "\\b", "")
                                 + " ";
-                        if (quickName.replaceAll(" ", "").equals("") && extMatched) {
+                        if (!genericNames.contains(token)) {
+                            AtleastOneExact = true;
+                        }
+                        if (quickName.replaceAll(" ", "").length() <= 2) {
                             score += 100;
+                        }
+                    } else if (quickNameClean.length() > 2 && tokenClean.length() > 2
+                            && quickNameClean.equalsIgnoreCase(tokenClean)) {
+                        score += 70;
+                        if (!genericNames.contains(token)) {
+                            AtleastOneExact = true;
                         }
                     } else if (quickName.toLowerCase().contains(token.toLowerCase())) {
                         score += 55;
                         quickName = " " + quickName.replaceFirst("(?i)" + Pattern.quote(token), "") + " ";
+                        if (!genericNames.contains(token)) {
+                            AtleastOneExact = true;
+                        }
+                        if (quickName.replaceAll(" ", "").length() <= 2) {
+                            score += 100;
+                        }
                     } else if (DL_light(quickName.toLowerCase(), token.toLowerCase())) {
                         score += 55;
                     } else if (preName.matches("(?i).*\\b" + token + "\\b.*")) {
                         score += 60;
                         preName = " " + preName.replaceFirst("(?i)\\b" + Pattern.quote(token) + "\\b", "") + " ";
-                        if (preName.replaceAll(" ", "").equals("")) {
+                        if (preName.replaceAll(" ", "").length() <= 2) {
                             score += 200;
                         }
                     } else if (preName.toLowerCase().contains(token.toLowerCase())) {
                         score += 45;
                         preName = " " + preName.replaceFirst("(?i)" + Pattern.quote(token), "") + " ";
+                        if (preName.replaceAll(" ", "").length() <= 2) {
+                            score += 200;
+                        }
                     } else if (DL_light(preName.toLowerCase(), token.toLowerCase())) {
                         score += 45;
+                    } else {
+                        score -= 20;// penalty for useless tokens
                     }
 
+                } else {
+                    score -= 20;// penalty for useless tokens
                 }
+
             }
         }
-        if (score > 0) {
-            for (LocalDateTime dt : TimeInLocal(file)) {
-                if (dt != null && datetime.start != null
-                        && (truncate(dt, datetime.grain)).equals(truncate(datetime.start, datetime.grain))) {
-                    score += 70;
-                    break;
+        if (AtleastOneExact) {
+            if (score > 0 && !safeExtUsed)
+
+            {
+                for (String e : goodextList) {
+                    if (e.equalsIgnoreCase(ext)) {
+                        score += 55;
+                        break;
+                    }
                 }
             }
-        }
-        String[] pieces = file.toString().split(Pattern.quote(File.separator));
-        int parts = pieces.length;
-        if (parts > 8) {
-            score -= (parts - 8) * 25;
-        }
-        return score;
+            if (score > 0 && datetime.start != null) {
+                if (datetime.end != null) {
+                    for (LocalDateTime dt : TimeInLocal(file)) {
+                        if (dt != null
+                                && (((truncate(dt, datetime.grain)).isAfter(truncate(datetime.start, datetime.grain))
+                                        && (truncate(dt, datetime.grain))
+                                                .isBefore(truncate(datetime.end, datetime.grain)))
+                                        || (truncate(dt, datetime.grain))
+                                                .equals(truncate(datetime.start, datetime.grain))
+                                        || (truncate(dt, datetime.grain))
+                                                .equals(truncate(datetime.end, datetime.grain)))) {
+                            score += 70;
+                            break;
+                        }
+                    }
+                } else {
+                    for (LocalDateTime dt : TimeInLocal(file)) {
+                        if (dt != null
+                                && (truncate(dt, datetime.grain)).equals(truncate(datetime.start, datetime.grain))) {
+                            score += 70;
+                            break;
+                        }
+                    }
+                }
+            }
+            String[] pieces = file.toString().split(Pattern.quote(File.separator));
+            int parts = pieces.length;
+            if (parts > 8) {
+                score -= (parts - 8) * 25;
+            }
+            return score;
+        } else
+            return 0;
     }
 
     public LocalDateTime[] TimeInLocal(Path file) {
@@ -233,52 +340,72 @@ public class search2 extends SimpleFileVisitor<Path> {
         return TimeArray;
     }
 
-    public boolean DL_light(String quickname, String b) {
-        int i = 0, j = 0, edits = 0;
-        int threshold;
+    public static boolean DL_light(String quickname, String b) {
+        b = b.replaceAll("[^A-Za-z]", "");
         boolean match = false;
-        for (String a : quickname.strip().split("[^A-Za-z0-9]+")) {
-            if (b.length() - a.length() > 2) {
-                continue;
+        String[] quickarr;
+        if (!b.equals("")) {
+            if (Math.abs(quickname.length() - b.length()) <= 2) {
+                quickarr = new String[] { quickname.strip().replaceAll("[^A-Za-z]", "") };
             } else {
-                if (a.length() <= 5) {
-                    threshold = 1;
-                } else if (a.length() <= 8) {
-                    threshold = 2;
-                } else if (a.length() <= 15) {
-                    threshold = 4;
-                } else {
-                    threshold = 6;
-                }
-                while (i < a.length() && j < b.length()) {
-                    if (a.charAt(i) == b.charAt(j)) {
-                        i++;
-                        j++;
+                quickarr = quickname.strip().split("[^A-Za-z]+");
+            }
+            for (String a : quickarr) {
+                int i = 0, j = 0, edits = 0;
+                int threshold;
+                if (!a.equals("")) {
+                    int diff = Math.abs(b.length() - a.length());
+                    if (diff > 2) {
+                        continue;
                     } else {
-                        edits++;
-                        if (edits > threshold) {
-                            break;
-                        }
-                        // checking for transposition only adjacent swaps
-                        if (i + 1 < a.length() && j + 1 < b.length() && a.charAt(i) == b.charAt(j + 1)
-                                && a.charAt(i + 1) == b.charAt(j)) {
-                            i += 2;
-                            j += 2;
-                        } else if (a.length() > b.length()) {
-                            i++;
-                        } else if (a.length() < b.length()) {
-                            j++;
+                        if (a.length() <= 3) {
+                            threshold = 0;
+                        } else if (a.length() <= 5) {
+                            threshold = 1;
+                        } else if (a.length() <= 8) {
+                            threshold = 2;
+                        } else if (a.length() <= 15) {
+                            threshold = 4;
                         } else {
-                            i++;
-                            j++;
+                            threshold = 6;
+                        }
+                        if (diff > threshold) {
+                            continue;
+                        } else {
+                            while (i < a.length() && j < b.length()) {
+                                if (a.charAt(i) == b.charAt(j)) {
+                                    i++;
+                                    j++;
+                                } else {
+                                    edits++;
+                                    if (edits > threshold) {
+                                        break;
+                                    }
+                                    // checking for transposition only adjacent swaps
+                                    if (i + 1 < a.length() && j + 1 < b.length() && a.charAt(i) == b.charAt(j + 1)
+                                            && a.charAt(i + 1) == b.charAt(j)) {
+                                        i += 2;
+                                        j += 2;
+                                    } else if (a.length() > b.length()) {
+                                        i++;
+                                    } else if (a.length() < b.length()) {
+                                        j++;
+                                    } else {
+                                        i++;
+                                        j++;
+                                    }
+                                }
+                            }
+                            if (edits <= threshold) {
+                                if (i < a.length() || j < b.length())
+                                    edits += (a.length() - i) + (b.length() - j);
+                            }
+                            match = edits <= threshold;
+                            if (match) {
+                                break;
+                            }
                         }
                     }
-                }
-                if (i < a.length() || j < b.length())
-                    edits += (a.length() - i) + (b.length() - j);
-                match = edits <= threshold;
-                if (match) {
-                    break;
                 }
             }
         }
@@ -300,7 +427,7 @@ public class search2 extends SimpleFileVisitor<Path> {
             case NANOS:
                 return dt.truncatedTo(unit);
             default:
-                throw new UnsupportedOperationException("Unsupported truncation unit: " + unit);
+                return dt;
         }
     }
 
