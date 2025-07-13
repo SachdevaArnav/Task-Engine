@@ -23,7 +23,7 @@ public class sending_query_debugging {
         // "newest", "old" };
         try {
             // for (File Drive : roots) {
-            String Drive = "D:\\OneDrive\\Desktop\\Java\\ARS_Platform\\What people wants";
+            String Drive = "D:\\sachd\\Desktop\\EC lab\\Amplifer Assignment.pdf";
             Files.walkFileTree(Paths.get(Drive), visitor);
             // }
             TreeMap<Integer, List<Path>> ScoreBoard = visitor.getScore();

@@ -25,6 +25,7 @@ public class search2 extends SimpleFileVisitor<Path> {
     String query;
     DateTimeQueryPraser.ParsedDateTime datetime;
     TreeMap<Integer, List<Path>> ScoreBoard = new TreeMap<>();
+    // int totalLength = 0;
     Pattern UUID = Pattern.compile("[a-fA-F0-9]{8}-([a-fA-F0-9]{4}-){3}[a-fA-F0-9]{12}");
     // ppt and pptx and like r not connected together and that thing is not added
     // for checking file extension correct that
@@ -96,7 +97,7 @@ public class search2 extends SimpleFileVisitor<Path> {
             }
             int score = FuzzyScoring(file);
             if (score > 0) {
-                ScoreBoard.computeIfAbsent(score, k -> new ArrayList<>()).add(file);
+                addRequired(score, file);
             }
         }
         return FileVisitResult.CONTINUE;
@@ -147,7 +148,7 @@ public class search2 extends SimpleFileVisitor<Path> {
             if (query.matches("(?i).*folder.*") || query.matches("(?i).*dir.*")) {
                 int score = FuzzyScoring(dir);
                 if (score > 0) {
-                    ScoreBoard.computeIfAbsent(score, k -> new ArrayList<>()).add(dir);
+                    addRequired(score, dir);
                 }
             }
         }
@@ -159,10 +160,11 @@ public class search2 extends SimpleFileVisitor<Path> {
     // interestingly if query was 'restart start' then it will be rated correctly
     // ->So using sorted array (sorted based on number of characters NOT
     // alphabetical order) and remving the token from the name/preName once used
+    String quickName;
+
     public int FuzzyScoring(Path file) {
         int score = 0;
         String name = " " + file.getFileName().toString().replaceAll("[^a-zA-Z0-9. ]", " ") + " ";
-        String quickName;
         String ext = "";
         boolean extMatched = true;
         boolean AtleastOneExact = false;
@@ -214,7 +216,7 @@ public class search2 extends SimpleFileVisitor<Path> {
                 }
                 String quickNameClean = quickName.replaceAll("[0-9 ]", "");
                 String tokenClean = token.replaceAll("[0-9 ]", "");
-
+                search2.what result = null;
                 if (quickName.replaceAll(" ", "").length() > 2) {
                     if (quickName.matches("(?i).*\\b" + token + "\\b.*")) {
                         score += 70;
@@ -222,9 +224,6 @@ public class search2 extends SimpleFileVisitor<Path> {
                                 + " ";
                         if (!genericNames.contains(token)) {
                             AtleastOneExact = true;
-                        }
-                        if (quickName.replaceAll(" ", "").length() <= 2) {
-                            score += 100;
                         }
                     } else if (quickNameClean.length() > 2 && tokenClean.length() > 2
                             && quickNameClean.equalsIgnoreCase(tokenClean)) {
@@ -238,33 +237,32 @@ public class search2 extends SimpleFileVisitor<Path> {
                         if (!genericNames.contains(token)) {
                             AtleastOneExact = true;
                         }
-                        if (quickName.replaceAll(" ", "").length() <= 2) {
-                            score += 100;
-                        }
-                    } else if (DL_light(quickName.toLowerCase(), token.toLowerCase())) {
+                    } else if ((result = DL_light(quickName.toLowerCase(), token.toLowerCase())).match) {
                         score += 55;
+                        quickName = " " + quickName.replaceFirst("(?i)" + result.replacement, "") + " ";
                     } else if (preName.matches("(?i).*\\b" + token + "\\b.*")) {
                         score += 60;
                         preName = " " + preName.replaceFirst("(?i)\\b" + Pattern.quote(token) + "\\b", "") + " ";
-                        if (preName.replaceAll(" ", "").length() <= 2) {
-                            score += 200;
-                        }
+
                     } else if (preName.toLowerCase().contains(token.toLowerCase())) {
                         score += 45;
                         preName = " " + preName.replaceFirst("(?i)" + Pattern.quote(token), "") + " ";
-                        if (preName.replaceAll(" ", "").length() <= 2) {
-                            score += 200;
-                        }
-                    } else if (DL_light(preName.toLowerCase(), token.toLowerCase())) {
+
+                    } else if ((result = DL_light(preName.toLowerCase(), token.toLowerCase())).match) {
                         score += 45;
+                        preName = " " + preName.replaceFirst("(?i)" + result.replacement, "") + " ";
                     } else {
                         score -= 20;// penalty for useless tokens
                     }
-
+                    if (quickName.replaceAll(" ", "").length() <= 2) {
+                        score += 100;
+                    }
+                    if (preName.replaceAll(" ", "").length() <= 2) {
+                        score += 200;
+                    }
                 } else {
                     score -= 20;// penalty for useless tokens
                 }
-
             }
         }
         if (AtleastOneExact) {
@@ -278,7 +276,7 @@ public class search2 extends SimpleFileVisitor<Path> {
                     }
                 }
             }
-            if (score > 0 && datetime.start != null) {
+            if (score > 0 && datetime != null && datetime.start != null) {
                 if (datetime.end != null) {
                     for (LocalDateTime dt : TimeInLocal(file)) {
                         if (dt != null
@@ -340,7 +338,7 @@ public class search2 extends SimpleFileVisitor<Path> {
         return TimeArray;
     }
 
-    public static boolean DL_light(String quickname, String b) {
+    public static search2.what DL_light(String quickname, String b) {
         b = b.replaceAll("[^A-Za-z]", "");
         boolean match = false;
         String[] quickarr;
@@ -402,14 +400,25 @@ public class search2 extends SimpleFileVisitor<Path> {
                             }
                             match = edits <= threshold;
                             if (match) {
-                                break;
+                                return new search2.what(match, a);
                             }
                         }
                     }
                 }
             }
         }
-        return match;
+        return new search2.what(match, null);
+    }
+
+    public static class what {
+
+        public boolean match;
+        public String replacement;
+
+        public what(boolean match, String replacement) {
+            this.match = match;
+            this.replacement = replacement;
+        }
     }
 
     public static LocalDateTime truncate(LocalDateTime dt, ChronoUnit unit) {
@@ -428,6 +437,28 @@ public class search2 extends SimpleFileVisitor<Path> {
                 return dt.truncatedTo(unit);
             default:
                 return dt;
+        }
+    }
+
+    public void addRequired(int Score, Path file) {
+        if (ScoreBoard.size() != 0) {
+            int key = ScoreBoard.firstKey();
+            if (ScoreBoard.size() < 6) {
+                ScoreBoard.computeIfAbsent(Score, k -> new ArrayList<>()).add(file);
+                // totalLength += 1;
+            } else if (key <= Score) {
+                if (ScoreBoard.containsKey(Score)) {
+                    ScoreBoard.get(Score).add(file);
+                    // totalLength += 1;
+                } else {
+                    // totalLength = totalLength + 1 - ScoreBoard.get(key).size();
+                    ScoreBoard.remove(key);
+                    ScoreBoard.put(Score, new ArrayList<>(List.of(file)));
+                }
+            }
+        } else {
+            ScoreBoard.computeIfAbsent(Score, k -> new ArrayList<>()).add(file);
+            // totalLength += 1;
         }
     }
 

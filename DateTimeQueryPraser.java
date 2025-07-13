@@ -87,6 +87,8 @@ public class DateTimeQueryPraser {
 
     static String cleaninput = "";
 
+    // all forms of date time where its yy in starting is missing (and its the
+    // standard date time of java)
     public static ParsedDateTime parse(String input) {
         ParsedDateTime[] datetimes = new ParsedDateTime[2];
         Matcher longTextDateTimeMatcher = LONG_TEXT_DATE_TIME_PATTERN.matcher(input);
@@ -113,7 +115,29 @@ public class DateTimeQueryPraser {
         Matcher onlyShortMonthMatcher = ONLY_MONTH_SHORT_PATTERN.matcher(input);
         Matcher yearMatcher = YEAR_PATTERN.matcher(input);
         int i = 0;
-        do {
+        while (longTextDateTimeMatcher.find(0) ||
+                longTextDateTime12Matcher.find(0) ||
+                longTextDateHourClockMatcherat.find(0) ||
+                longTextDate12HourClockMatcherat.find(0) ||
+                longTextDateHourClockMatcher.find(0) ||
+                longTextDate12HourClockMatcher.find(0) ||
+                longTextDateReverse2DigitMatcher.find(0) ||
+                shortTextDateReverse2DigitMatcher.find(0) ||
+                longTextDateReverseMatcher.find(0) ||
+                shortTextDateReverseMatcher.find(0) ||
+                longTextDateMatcher.find(0) ||
+                shortTextDateMatcher.find(0) ||
+                longTextMonthYear2DigitMatcher.find(0) ||
+                shortTextMonthYear2DigitMatcher.find(0) ||
+                longTextMonthYearMatcher.find(0) ||
+                shortTextMonthYearMatcher.find(0) ||
+                numericDateMatcher.find(0) ||
+                numericDate2DMatcher.find(0) ||
+                dayMonthMatcher.find(0) ||
+                yearMatcher.find(0) ||
+                onlyMonthMatcher.find(0) ||
+                onlyShortMonthMatcher.find(0) ||
+                dayMonthShortMatcher.find(0)) {
             String replacement;
             if (i < 2) {
                 try {
@@ -336,29 +360,7 @@ public class DateTimeQueryPraser {
             } else {
                 break;
             }
-        } while (longTextDateTimeMatcher.find(0) ||
-                longTextDateTime12Matcher.find(0) ||
-                longTextDateHourClockMatcherat.find(0) ||
-                longTextDate12HourClockMatcherat.find(0) ||
-                longTextDateHourClockMatcher.find(0) ||
-                longTextDate12HourClockMatcher.find(0) ||
-                longTextDateReverse2DigitMatcher.find(0) ||
-                shortTextDateReverse2DigitMatcher.find(0) ||
-                longTextDateReverseMatcher.find(0) ||
-                shortTextDateReverseMatcher.find(0) ||
-                longTextDateMatcher.find(0) ||
-                shortTextDateMatcher.find(0) ||
-                longTextMonthYear2DigitMatcher.find(0) ||
-                shortTextMonthYear2DigitMatcher.find(0) ||
-                longTextMonthYearMatcher.find(0) ||
-                shortTextMonthYearMatcher.find(0) ||
-                numericDateMatcher.find(0) ||
-                numericDate2DMatcher.find(0) ||
-                dayMonthMatcher.find(0) ||
-                yearMatcher.find(0) ||
-                onlyMonthMatcher.find(0) ||
-                onlyShortMonthMatcher.find(0) ||
-                dayMonthShortMatcher.find(0));
+        }
         cleaninput = input;
         if (datetimes[1] != null) {
             ParsedDateTime start;
