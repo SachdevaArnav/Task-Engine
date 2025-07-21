@@ -1,5 +1,6 @@
 
 // import java.io.File;
+// import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,16 +15,14 @@ public class sending_query_debugging {
     public static void main(String[] args) {
         Scanner input = new Scanner(System.in);
         System.out.println("Related text");
-        String x = input.nextLine();
+        String x = referenceTime.simplify(input.nextLine()).replaceAll("[^A-Za-z0-9 ]", " ");
         DateTimeQueryPraser.ParsedDateTime datetime = DateTimeQueryPraser.parse(x);
         // File[] roots = File.listRoots();
-        search2 visitor = new search2(x, datetime);
-        // String[] timeStrings = { "today", "yesterday", "week", "month", "year",
-        // "recent", "recently", "older", "latest",
-        // "newest", "old" };
+        search2 visitor = new search2(
+                DateTimeQueryPraser.getCleanInput(), datetime);// "newest", "old" };
         try {
             // for (File Drive : roots) {
-            String Drive = "D:\\sachd\\Desktop\\EC lab\\Amplifer Assignment.pdf";
+            String Drive = "D:\\OneDrive\\Desktop\\clg\\hostel .jpg";
             Files.walkFileTree(Paths.get(Drive), visitor);
             // }
             TreeMap<Integer, List<Path>> ScoreBoard = visitor.getScore();

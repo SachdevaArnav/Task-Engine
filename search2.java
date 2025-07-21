@@ -180,6 +180,16 @@ public class search2 extends SimpleFileVisitor<Path> {
         } else {
             quickName = name.replaceAll("\\.", " ");
         }
+        boolean MultiWord = false;
+        String bareString = quickName.strip();
+        String[] alphaQuickName = quickName.split("[^A-Za-z]");
+        for (int i = 0; i < bareString.length() - 1; i++) {
+            if (bareString.charAt(i) == ' ') {
+                MultiWord = true;
+                bareString = null;
+                break;
+            }
+        }
         String preName = " " + file.getParent().toString().replaceAll("[^a-zA-Z0-9 ]", " ") + " ";
         String[] Tokens1 = query.replaceAll("[^a-zA-Z0-9 ]", " ").split(" ");
         Arrays.sort(Tokens1, Comparator.comparing(s -> s.length()));
@@ -194,6 +204,8 @@ public class search2 extends SimpleFileVisitor<Path> {
                 if (!safeExtUsed) {
                     if (token.equalsIgnoreCase(ext)) {
                         score += 70;
+                        extMatched = true;
+                        safeExtUsed = true;
                     } else {
                         for (Set<String> value : extensionGroups) {
                             if (!extMatched && value.contains(token.toLowerCase())) {
@@ -203,10 +215,11 @@ public class search2 extends SimpleFileVisitor<Path> {
                                     safeExtUsed = true;
                                     break;
                                 }
-                                for (String a : quickName.split("[^A-Za-z]")) {
+                                for (String a : alphaQuickName) {
                                     if (value.contains(a.toLowerCase())) {
                                         score += 60;
                                         safeExtUsed = true;
+                                        alphaQuickName = null;
                                         break;
                                     }
                                 }
@@ -254,12 +267,11 @@ public class search2 extends SimpleFileVisitor<Path> {
                     } else {
                         score -= 20;// penalty for useless tokens
                     }
-                    if (quickName.replaceAll(" ", "").length() <= 2) {
-                        score += 100;
-                    }
                     if (preName.replaceAll(" ", "").length() <= 2) {
                         score += 200;
                     }
+                } else if ((MultiWord || extMatched)) {
+                    score += 100;
                 } else {
                     score -= 20;// penalty for useless tokens
                 }

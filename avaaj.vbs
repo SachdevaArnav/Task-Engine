@@ -1,4 +1,4 @@
 Dim message, sapi
-  message = "Opening mit website"
+  message = "Welcome"
  Set sapi = CreateObject("sapi.spvoice")
 sapi.Speak message

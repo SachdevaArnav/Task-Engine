@@ -10,17 +10,19 @@ public class referenceTime {
     final static Pattern yday = Pattern.compile("(?i)\\byday\\b");
     final static Pattern tmrw = Pattern.compile("(?i)\\btmrw\\b");
     final static Pattern _2mrw = Pattern.compile("(?i)\\b2mrw\\b");
-    final static Pattern Ago = Pattern.compile("(?i)(\\d+|a) \\b(day|month|year|week|hour)(s)? ago\\b");
-    final static Pattern IN = Pattern.compile("(?i)in (\\d+|a )\\b(day|month|year|week|hour)(s)?\\b");
+    final static Pattern Ago = Pattern.compile("(?i)(\\d+|a) \\b(day|month|year|week|hour|hr)(s)? ago\\b");
+    final static Pattern IN = Pattern.compile("(?i)in (\\d+|a) \\b(day|month|year|week|hour|hr)(s)?\\b");
     final static Pattern InRange = Pattern
-            .compile("(?i)\\b(last|next) (\\d+ )?(day|month|year|week|hour|weekend)(s)?\\b");
-    final static Pattern _this = Pattern.compile("(?i)\\bthis (month|year|week|hour|weekend)\\b");
+            .compile(
+                    "(?i)\\b(last|next) (\\d+ )?(day|month|year|week|hour|hr|weekend|monday|tuesday|wednesday|thurday|friday|saturday|sunday)(s)?\\b");
+    final static Pattern _this = Pattern.compile(
+            "(?i)\\bthis (month|year|week|hour|hr|weekend|monday|tuesday|wednesday|thurday|friday|saturday|sunday)\\b");
 
-    // final static Pattern = Pattern.compile("(?i)(\\d+) \\b ago\\b");
-
+    // check the format to be shown by these in the output wrt the format supported
+    // in the DateTimeQueryPraser
     public static String simplify(String query) {
-        LocalDate refDate = LocalDate.now();
         LocalDateTime refTime = LocalDateTime.now();
+        LocalDate refDate = refTime.toLocalDate();
         search2.what a;
         Matcher match;
 
@@ -69,7 +71,7 @@ public class referenceTime {
                     query = query.replaceAll(match.group(),
                             "between " + startOfweek.toString() + " and " + endOfweek.toString());
                     break;
-                case "hour":
+                case "hour", "hr":
                     LocalDateTime exact_hr_back = refTime.minusHours(num);
                     int hr = exact_hr_back.getHour();
                     if (exact_hr_back.getMinute() > 30) {
@@ -105,15 +107,58 @@ public class referenceTime {
                     query = query.replaceAll(match.group(),
                             "between " + startOfweek.toString() + " and " + endOfweek.toString());
                     break;
-                case "hour":
+                case "hour", "hr":
                     query = query.replaceAll(match.group(), refDate.toString() + " at "
                             + Integer.toString(refTime.getHour()));
                     break;
-                case "weekend", "weekends":
-                    LocalDate sat = refDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
-                    LocalDate sun = refDate.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+                case "weekend", "weekends": {
+                    LocalDate sat = GetDayInThatWeek(refDate, DayOfWeek.SATURDAY);
+                    LocalDate sun = GetDayInThatWeek(refDate, DayOfWeek.SUNDAY);
                     query = query.replaceAll(match.group(), sat + " and " + sun);
                     break;
+                }
+                case "monday": {
+
+                    LocalDate day = GetDayInThatWeek(refDate, DayOfWeek.MONDAY);
+                    query = query.replaceAll(match.group(), day.toString());
+                    break;
+                }
+                case "tuesday": {
+
+                    LocalDate day = GetDayInThatWeek(refDate, DayOfWeek.TUESDAY);
+                    query = query.replaceAll(match.group(), day.toString());
+                    break;
+                }
+                case "wednesday": {
+
+                    LocalDate day = GetDayInThatWeek(refDate, DayOfWeek.SUNDAY);
+                    query = query.replaceAll(match.group(), day.toString());
+                    break;
+                }
+                case "thursday": {
+
+                    LocalDate day = GetDayInThatWeek(refDate, DayOfWeek.THURSDAY);
+                    query = query.replaceAll(match.group(), day.toString());
+                    break;
+                }
+                case "friday": {
+
+                    LocalDate day = GetDayInThatWeek(refDate, DayOfWeek.FRIDAY);
+                    query = query.replaceAll(match.group(), day.toString());
+                    break;
+                }
+                case "saturday": {
+
+                    LocalDate day = GetDayInThatWeek(refDate, DayOfWeek.SATURDAY);
+                    query = query.replaceAll(match.group(), day.toString());
+                    break;
+                }
+                case "sunday": {
+
+                    LocalDate day = GetDayInThatWeek(refDate, DayOfWeek.SUNDAY);
+                    query = query.replaceAll(match.group(), day.toString());
+                    break;
+                }
                 default:
                     break;
             }
@@ -152,7 +197,7 @@ public class referenceTime {
                             query = query.replaceAll(match.group(),
                                     "between " + startOfweek.toString() + " and " + refDate.toString());
                             break;
-                        case "hour":
+                        case "hour", "hr":
                             LocalDateTime exact_hr_back = refTime.minusHours(num);
                             int hr = exact_hr_back.getHour();
                             if (exact_hr_back.getMinute() > 30) {
@@ -163,12 +208,55 @@ public class referenceTime {
                                             + Integer.toString(hr) + " and " + refDate.toString() + " at "
                                             + refTime.getHour());
                             break;
-                        case "weekend":
+                        case "weekend": {
                             LocalDate date = refDate.minusWeeks(1);
-                            LocalDate sat = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
-                            LocalDate sun = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+                            LocalDate sat = GetDayInThatWeek(date, DayOfWeek.SATURDAY);
+                            LocalDate sun = GetDayInThatWeek(date, DayOfWeek.SUNDAY);
                             query = query.replaceAll(match.group(), sat + " and " + sun);
                             break;
+                        }
+                        case "monday": {
+                            LocalDate date = refDate.minusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.MONDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "tuesday": {
+                            LocalDate date = refDate.minusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.TUESDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "wednesday": {
+                            LocalDate date = refDate.minusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.SUNDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "thursday": {
+                            LocalDate date = refDate.minusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.THURSDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "friday": {
+                            LocalDate date = refDate.minusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.FRIDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "saturday": {
+                            LocalDate date = refDate.minusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.SATURDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "sunday": {
+                            LocalDate date = refDate.minusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.SUNDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
                         default:
                             break;
                     }
@@ -200,7 +288,7 @@ public class referenceTime {
                             query = query.replaceAll(match.group(),
                                     "between " + endOfweek.toString() + " and " + refDate.toString());
                             break;
-                        case "hour":
+                        case "hour", "hr":
                             LocalDateTime exact_hr_later = refTime.plusHours(num);
                             int hr = exact_hr_later.getHour();
                             query = query.replaceAll(match.group(),
@@ -208,12 +296,55 @@ public class referenceTime {
                                             + Integer.toString(hr) + " and " + refDate.toString() + " at "
                                             + refTime.getHour());
                             break;
-                        case "weekend":
+                        case "weekend": {
                             LocalDate date = refDate.plusWeeks(1);
-                            LocalDate sat = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SATURDAY));
-                            LocalDate sun = date.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY));
+                            LocalDate sat = GetDayInThatWeek(date, DayOfWeek.SATURDAY);
+                            LocalDate sun = GetDayInThatWeek(date, DayOfWeek.SUNDAY);
                             query = query.replaceAll(match.group(), sat + " and " + sun);
                             break;
+                        }
+                        case "monday": {
+                            LocalDate date = refDate.plusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.MONDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "tuesday": {
+                            LocalDate date = refDate.plusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.TUESDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "wednesday": {
+                            LocalDate date = refDate.plusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.SUNDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "thursday": {
+                            LocalDate date = refDate.plusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.THURSDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "friday": {
+                            LocalDate date = refDate.plusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.FRIDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "saturday": {
+                            LocalDate date = refDate.plusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.SATURDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
+                        case "sunday": {
+                            LocalDate date = refDate.plusWeeks(1);
+                            LocalDate day = GetDayInThatWeek(date, DayOfWeek.SUNDAY);
+                            query = query.replaceAll(match.group(), day.toString());
+                            break;
+                        }
                         default:
                             break;
                     }
@@ -252,7 +383,7 @@ public class referenceTime {
                     query = query.replaceAll(match.group(),
                             "between " + startOfweek.toString() + " and " + endOfweek.toString());
                     break;
-                case "hour":
+                case "hour", "hr":
                     LocalDateTime exact_hr_later = refTime.plusHours(num);
                     int hr = exact_hr_later.getHour();
                     query = query.replaceAll(match.group(), exact_hr_later.toLocalDate().toString() + " at "
@@ -263,6 +394,30 @@ public class referenceTime {
             }
         }
         return query;
+    }
+
+    private static LocalDate GetDayInThatWeek(LocalDate refDate, DayOfWeek day) {
+        int refDay = refDate.getDayOfWeek().getValue();
+        int daynum = day.getValue();
+        if (!settings.defaultweekStartSun) {
+            if (daynum <= refDay) {
+                return refDate.with(TemporalAdjusters.previousOrSame(day));
+            } else {
+                return refDate.with(TemporalAdjusters.next(day));
+            }
+        } else {
+            if (daynum == 7) {
+                return refDate.with(TemporalAdjusters.previousOrSame(day));
+            }
+            if (refDay == 7) {
+                return refDate.with(TemporalAdjusters.nextOrSame(day));
+            }
+            if (daynum <= refDay) {
+                return refDate.with(TemporalAdjusters.previousOrSame(day));
+            } else {
+                return refDate.with(TemporalAdjusters.next(day));
+            }
+        }
     }
 
     public static void main(String[] args) {

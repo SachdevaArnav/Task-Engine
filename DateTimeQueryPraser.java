@@ -1,6 +1,7 @@
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Month;
+import java.time.Year;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -9,13 +10,16 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-// the range thing is still pending
 public class DateTimeQueryPraser {
     private static final Pattern YEAR_PATTERN = Pattern.compile("\\d{4}");
     private static final Pattern SHORT_TEXT_MONTH_YEAR_PATTERN = Pattern
             .compile("(?i)\\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\b \\d{4}");
+    private static final Pattern yySHORT_TEXT_MONTH_YEAR_PATTERN = Pattern
+            .compile("(?i)\\d{4} \\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\b");
     private static final Pattern LONG_TEXT_MONTH_YEAR_PATTERN = Pattern.compile(
             "(?i)\\b(january|february|march|april|may|june|july|august|september|october|november|december)\\b \\d{4}");
+    private static final Pattern yyLONG_TEXT_MONTH_YEAR_PATTERN = Pattern.compile(
+            "(?i)\\d{4} \\b(january|february|march|april|may|june|july|august|september|october|november|december)\\b");
     private static final Pattern SHORT_TEXT_MONTH_YEAR_2DIGIT_PATTERN = Pattern.compile(
             "(?i)\\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\b \\d{2}",
             Pattern.CASE_INSENSITIVE);
@@ -29,9 +33,15 @@ public class DateTimeQueryPraser {
     private static final Pattern SHORT_TEXT_DATE_REVERSE_PATTERN = Pattern
             .compile(
                     "(?i)\\b(3[01]|[12][0-9]|0?[1-9])\\b \\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\b \\d{4}");
+    private static final Pattern yySHORT_TEXT_DATE_REVERSE_PATTERN = Pattern
+            .compile(
+                    "(?i)\\d{4} \\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\b \\b(3[01]|[12][0-9]|0?[1-9])\\b");
     private static final Pattern LONG_TEXT_DATE_REVERSE_PATTERN = Pattern
             .compile(
                     "(?i)\\b(3[01]|[12][0-9]|0?[1-9])\\b \\b(january|february|march|april|may|june|july|august|september|october|november|december)\\b \\d{4}");
+    private static final Pattern yyLONG_TEXT_DATE_REVERSE_PATTERN = Pattern
+            .compile(
+                    "(?i)\\d{4} \\b(january|february|march|april|may|june|july|august|september|october|november|december)\\b \\b(3[01]|[12][0-9]|0?[1-9])\\b");
     private static final Pattern SHORT_TEXT_DATE_REVERSE_2DIGIT_PATTERN = Pattern
             .compile(
                     "(?i)\\b(3[01]|[12][0-9]|0?[1-9])\\b \\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\\b \\d{2}");
@@ -62,6 +72,8 @@ public class DateTimeQueryPraser {
             .compile("\\b(3[01]|[12][0-9]|0?[1-9])\\b \\b(1[0-2]|0?[1-9])\\b \\d{2}");
     private static final Pattern NUMERIC_DATE = Pattern
             .compile("\\b(3[01]|[12][0-9]|0?[1-9])\\b \\b(1[0-2]|0?[1-9])\\b \\d{4}");
+    private static final Pattern yyNUMERIC_DATE = Pattern
+            .compile("\\d{4} \\b(1[0-2]|0?[1-9])\\b \\b(3[01]|[12][0-9]|0?[1-9])\\b");
     private static final Pattern DAY_MONTH_PATTERN = Pattern.compile(
             "(?i)\\b(3[01]|[12][0-9]|0?[1-9])\\b \\b(january|february|march|april|may|june|july|august|september|october|november|december)\\b");
     private static final Pattern DAY_MONTH_SHORT_PATTERN = Pattern.compile(
@@ -86,6 +98,7 @@ public class DateTimeQueryPraser {
     }
 
     static String cleaninput = "";
+    static int currentYear = Year.now().getValue();
 
     // all forms of date time where its yy in starting is missing (and its the
     // standard date time of java)
@@ -100,14 +113,19 @@ public class DateTimeQueryPraser {
         Matcher longTextDateReverse2DigitMatcher = LONG_TEXT_DATE_REVERSE_2DIGIT_PATTERN.matcher(input);
         Matcher shortTextDateReverse2DigitMatcher = SHORT_TEXT_DATE_REVERSE_2DIGIT_PATTERN.matcher(input);
         Matcher longTextDateReverseMatcher = LONG_TEXT_DATE_REVERSE_PATTERN.matcher(input);
+        Matcher yylongTextDateReverseMatcher = yyLONG_TEXT_DATE_REVERSE_PATTERN.matcher(input);
         Matcher shortTextDateReverseMatcher = SHORT_TEXT_DATE_REVERSE_PATTERN.matcher(input);
+        Matcher yyshortTextDateReverseMatcher = yySHORT_TEXT_DATE_REVERSE_PATTERN.matcher(input);
         Matcher longTextDateMatcher = LONG_TEXT_DATE_PATTERN.matcher(input);
         Matcher shortTextDateMatcher = SHORT_TEXT_DATE_PATTERN.matcher(input);
         Matcher longTextMonthYear2DigitMatcher = LONG_TEXT_MONTH_YEAR_2DIGIT_PATTERN.matcher(input);
         Matcher shortTextMonthYear2DigitMatcher = SHORT_TEXT_MONTH_YEAR_2DIGIT_PATTERN.matcher(input);
         Matcher longTextMonthYearMatcher = LONG_TEXT_MONTH_YEAR_PATTERN.matcher(input);
         Matcher shortTextMonthYearMatcher = SHORT_TEXT_MONTH_YEAR_PATTERN.matcher(input);
+        Matcher yylongTextMonthYearMatcher = yyLONG_TEXT_MONTH_YEAR_PATTERN.matcher(input);
+        Matcher yyshortTextMonthYearMatcher = yySHORT_TEXT_MONTH_YEAR_PATTERN.matcher(input);
         Matcher numericDateMatcher = NUMERIC_DATE.matcher(input);
+        Matcher yynumericDateMatcher = yyNUMERIC_DATE.matcher(input);
         Matcher numericDate2DMatcher = NUMERIC_DATE_2D.matcher(input);
         Matcher dayMonthMatcher = DAY_MONTH_PATTERN.matcher(input);
         Matcher dayMonthShortMatcher = DAY_MONTH_SHORT_PATTERN.matcher(input);
@@ -124,14 +142,19 @@ public class DateTimeQueryPraser {
                 longTextDateReverse2DigitMatcher.find(0) ||
                 shortTextDateReverse2DigitMatcher.find(0) ||
                 longTextDateReverseMatcher.find(0) ||
+                yylongTextDateReverseMatcher.find(0) ||
                 shortTextDateReverseMatcher.find(0) ||
+                yyshortTextDateReverseMatcher.find(0) ||
                 longTextDateMatcher.find(0) ||
                 shortTextDateMatcher.find(0) ||
                 longTextMonthYear2DigitMatcher.find(0) ||
                 shortTextMonthYear2DigitMatcher.find(0) ||
                 longTextMonthYearMatcher.find(0) ||
                 shortTextMonthYearMatcher.find(0) ||
+                yylongTextMonthYearMatcher.find(0) ||
+                yyshortTextMonthYearMatcher.find(0) ||
                 numericDateMatcher.find(0) ||
+                yynumericDateMatcher.find(0) ||
                 numericDate2DMatcher.find(0) ||
                 dayMonthMatcher.find(0) ||
                 yearMatcher.find(0) ||
@@ -213,12 +236,28 @@ public class DateTimeQueryPraser {
                                         .appendPattern("dd MMMM yyyy")
                                         .toFormatter(Locale.ENGLISH));
                         datetimes[i] = new ParsedDateTime(date.atStartOfDay(), null, ChronoUnit.DAYS);
+                    } else if (yylongTextDateReverseMatcher.find(0)) {
+                        replacement = yylongTextDateReverseMatcher.group();
+                        LocalDate date = LocalDate.parse(replacement,
+                                new DateTimeFormatterBuilder()
+                                        .parseCaseInsensitive()
+                                        .appendPattern("yyyy MMMM dd")
+                                        .toFormatter(Locale.ENGLISH));
+                        datetimes[i] = new ParsedDateTime(date.atStartOfDay(), null, ChronoUnit.DAYS);
                     } else if (shortTextDateReverseMatcher.find(0)) {
                         replacement = shortTextDateReverseMatcher.group();
                         LocalDate date = LocalDate.parse(replacement,
                                 new DateTimeFormatterBuilder()
                                         .parseCaseInsensitive()
                                         .appendPattern("dd MMM yyyy")
+                                        .toFormatter(Locale.ENGLISH));
+                        datetimes[i] = new ParsedDateTime(date.atStartOfDay(), null, ChronoUnit.DAYS);
+                    } else if (yyshortTextDateReverseMatcher.find(0)) {
+                        replacement = yyshortTextDateReverseMatcher.group();
+                        LocalDate date = LocalDate.parse(replacement,
+                                new DateTimeFormatterBuilder()
+                                        .parseCaseInsensitive()
+                                        .appendPattern("yyyy MMM dd")
                                         .toFormatter(Locale.ENGLISH));
                         datetimes[i] = new ParsedDateTime(date.atStartOfDay(), null, ChronoUnit.DAYS);
                     } else if (longTextDateMatcher.find(0)) {
@@ -235,6 +274,22 @@ public class DateTimeQueryPraser {
                                 .appendPattern("MMM dd yyyy")
                                 .toFormatter(Locale.ENGLISH));
                         datetimes[i] = new ParsedDateTime(date.atStartOfDay(), null, ChronoUnit.DAYS);
+                    } else if (yylongTextMonthYearMatcher.find(0)) {
+                        replacement = yylongTextMonthYearMatcher.group();
+                        YearMonth monthyear = YearMonth.parse(replacement,
+                                new DateTimeFormatterBuilder()
+                                        .parseCaseInsensitive()
+                                        .appendPattern("yyyy MMMM")
+                                        .toFormatter(Locale.ENGLISH));
+                        datetimes[i] = new ParsedDateTime(monthyear.atDay(1).atStartOfDay(), null, ChronoUnit.MONTHS);
+                    } else if (yyshortTextMonthYearMatcher.find(0)) {
+                        replacement = yyshortTextMonthYearMatcher.group();
+                        YearMonth monthyear = YearMonth.parse(replacement,
+                                new DateTimeFormatterBuilder()
+                                        .parseCaseInsensitive()
+                                        .appendPattern("yyyy MMM")
+                                        .toFormatter(Locale.ENGLISH));
+                        datetimes[i] = new ParsedDateTime(monthyear.atDay(1).atStartOfDay(), null, ChronoUnit.MONTHS);
                     } else if (longTextMonthYearMatcher.find(0)) {
                         replacement = longTextMonthYearMatcher.group();
                         YearMonth monthyear = YearMonth.parse(replacement,
@@ -269,20 +324,28 @@ public class DateTimeQueryPraser {
                         datetimes[i] = new ParsedDateTime(monthyear.atDay(1).atStartOfDay(), null, ChronoUnit.MONTHS);
                     } else if (numericDateMatcher.find(0)) {
                         replacement = numericDateMatcher.group();
-                        LocalDateTime date = LocalDateTime.parse(replacement,
+                        LocalDate date = LocalDate.parse(replacement,
                                 new DateTimeFormatterBuilder()
                                         .parseCaseInsensitive()
                                         .appendPattern("dd MM yyyy")
                                         .toFormatter(Locale.ENGLISH));
-                        datetimes[i] = new ParsedDateTime(date, null, ChronoUnit.DAYS);
+                        datetimes[i] = new ParsedDateTime(date.atStartOfDay(), null, ChronoUnit.DAYS);
+                    } else if (yynumericDateMatcher.find(0)) {
+                        replacement = yynumericDateMatcher.group();
+                        LocalDate date = LocalDate.parse(replacement,
+                                new DateTimeFormatterBuilder()
+                                        .parseCaseInsensitive()
+                                        .appendPattern("yyyy MM dd")
+                                        .toFormatter(Locale.ENGLISH));
+                        datetimes[i] = new ParsedDateTime(date.atStartOfDay(), null, ChronoUnit.DAYS);
                     } else if (numericDate2DMatcher.find(0)) {
                         replacement = numericDate2DMatcher.group();
-                        LocalDateTime date = LocalDateTime.parse(replacement,
+                        LocalDate date = LocalDate.parse(replacement,
                                 new DateTimeFormatterBuilder()
                                         .parseCaseInsensitive()
                                         .appendPattern("dd MM yy")
                                         .toFormatter(Locale.ENGLISH));
-                        datetimes[i] = new ParsedDateTime(date, null, ChronoUnit.DAYS);
+                        datetimes[i] = new ParsedDateTime(date.atStartOfDay(), null, ChronoUnit.DAYS);
                     } else if (dayMonthMatcher.find(0)) {
                         replacement = dayMonthMatcher.group();
                         String[] parts = replacement.split(" ");
@@ -307,19 +370,19 @@ public class DateTimeQueryPraser {
                         LocalDate date = LocalDate.of(LocalDate.now().getYear(), month, day);
                         datetimes[i] = new ParsedDateTime(date.atStartOfDay(), null, ChronoUnit.DAYS);
                     } else if (onlyMonthMatcher.find(0)) {
-                        replacement = onlyMonthMatcher.group();
-                        LocalDateTime date = LocalDateTime.parse(replacement, new DateTimeFormatterBuilder()
+                        replacement = onlyMonthMatcher.group() + " " + currentYear;
+                        YearMonth date = YearMonth.parse(replacement, new DateTimeFormatterBuilder()
                                 .parseCaseInsensitive()
                                 .appendPattern("MMMM")
                                 .toFormatter(Locale.ENGLISH));
-                        datetimes[i] = new ParsedDateTime(date, null, ChronoUnit.MONTHS);
+                        datetimes[i] = new ParsedDateTime(date.atDay(1).atStartOfDay(), null, ChronoUnit.MONTHS);
                     } else if (onlyShortMonthMatcher.find(0)) {
-                        replacement = onlyShortMonthMatcher.group();
-                        LocalDateTime date = LocalDateTime.parse(replacement, new DateTimeFormatterBuilder()
+                        replacement = onlyShortMonthMatcher.group() + " " + currentYear;
+                        YearMonth date = YearMonth.parse(replacement, new DateTimeFormatterBuilder()
                                 .parseCaseInsensitive()
                                 .appendPattern("MMM")
                                 .toFormatter(Locale.ENGLISH));
-                        datetimes[i] = new ParsedDateTime(date, null, ChronoUnit.MONTHS);
+                        datetimes[i] = new ParsedDateTime(date.atDay(1).atStartOfDay(), null, ChronoUnit.MONTHS);
                     } else if (yearMatcher.find(0)) {
                         replacement = yearMatcher.group();
                         int yr = Integer.parseInt(replacement);
@@ -343,14 +406,19 @@ public class DateTimeQueryPraser {
                 longTextDateReverse2DigitMatcher = LONG_TEXT_DATE_REVERSE_2DIGIT_PATTERN.matcher(input);
                 shortTextDateReverse2DigitMatcher = SHORT_TEXT_DATE_REVERSE_2DIGIT_PATTERN.matcher(input);
                 longTextDateReverseMatcher = LONG_TEXT_DATE_REVERSE_PATTERN.matcher(input);
+                yylongTextDateReverseMatcher = yyLONG_TEXT_DATE_REVERSE_PATTERN.matcher(input);
                 shortTextDateReverseMatcher = SHORT_TEXT_DATE_REVERSE_PATTERN.matcher(input);
+                yyshortTextDateReverseMatcher = yySHORT_TEXT_DATE_REVERSE_PATTERN.matcher(input);
                 longTextDateMatcher = LONG_TEXT_DATE_PATTERN.matcher(input);
                 shortTextDateMatcher = SHORT_TEXT_DATE_PATTERN.matcher(input);
                 longTextMonthYear2DigitMatcher = LONG_TEXT_MONTH_YEAR_2DIGIT_PATTERN.matcher(input);
                 shortTextMonthYear2DigitMatcher = SHORT_TEXT_MONTH_YEAR_2DIGIT_PATTERN.matcher(input);
                 longTextMonthYearMatcher = LONG_TEXT_MONTH_YEAR_PATTERN.matcher(input);
                 shortTextMonthYearMatcher = SHORT_TEXT_MONTH_YEAR_PATTERN.matcher(input);
+                yylongTextMonthYearMatcher = yyLONG_TEXT_MONTH_YEAR_PATTERN.matcher(input);
+                yyshortTextMonthYearMatcher = yySHORT_TEXT_MONTH_YEAR_PATTERN.matcher(input);
                 numericDateMatcher = NUMERIC_DATE.matcher(input);
+                yynumericDateMatcher = yyNUMERIC_DATE.matcher(input);
                 numericDate2DMatcher = NUMERIC_DATE_2D.matcher(input);
                 dayMonthMatcher = DAY_MONTH_PATTERN.matcher(input);
                 dayMonthShortMatcher = DAY_MONTH_SHORT_PATTERN.matcher(input);

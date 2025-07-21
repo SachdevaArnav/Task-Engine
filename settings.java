@@ -8,7 +8,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Scanner;
 
 public class settings {
-    private static boolean defaultweekStartSun = false;
+    protected static boolean defaultweekStartSun = false;
     static {
         defaultweekStartSun = loadfromDisk();
     }

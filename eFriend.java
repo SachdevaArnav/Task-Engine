@@ -1,10 +1,15 @@
-import java.util.Scanner;
 import java.awt.Desktop;
-import java.net.URI;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.FileNotFoundException;
+import java.net.URI;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,8 +20,6 @@ import java.util.regex.Pattern;
  * @version (1)
  * @date start(18/03/2021)
  */
-// presently available search-ms is to be replaced with dir-based search
-// protocol
 public class eFriend {
     static void voicemsg(String voice) {
         System.out.println(voice);
@@ -56,31 +59,66 @@ public class eFriend {
         return matchFound;
     }
 
+    static HashMap<String, String> AppList = new HashMap<String, String>();
+
+    static void loadApps() {
+        try (BufferedReader myReader = new BufferedReader(
+                new FileReader("DATABASEKABASIC.txt"))) {
+            String database;
+            while (((database = myReader.readLine()) != null)) {
+                if (database.contains(":") && database.contains("|")) {
+                    String[] arrOfdata = database.split("\\|");
+                    String value = null;
+                    if ((value = arrOfdata[arrOfdata.length - 1]).contains(":")) {
+                        value = value.replaceFirst(":", "");
+                        for (String part : arrOfdata) {
+                            if (part != null && (part = part.strip()) != "")
+                                AppList.put(part.replaceAll("////s+", " "), value);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("App List loading failed");
+        }
+    }
+
+    static String getApp(String app) {
+        return AppList.get(app);
+    }
+
+    final static Pattern pattern8 = Pattern.compile(".", Pattern.LITERAL);
+    final static Pattern patternh = Pattern.compile("http", Pattern.CASE_INSENSITIVE);
+
     public static void main(String[] args) {
+        loadApps();
         Scanner input = new Scanner(System.in);
-        voicemsg("i am ur Friend");
+        // voicemsg("i am ur Friend");
         voicemsg("Welcome");
-        voicemsg("How can i help you!");
-        voicemsg("To open any file from your device say'open'");
-        voicemsg(
-                "I can learn info and later tell u. To make me learn say 'Learn that' and to access it later use 'What is'");
+        // voicemsg("How can i help you!");
+        // voicemsg("To open any file from your device say'open'");
+        // voicemsg(
+        // "I can learn info and later tell u. To make me learn say 'Learn that' and to
+        // access it later use 'What is'");
         int i = 0;
         int nummatchFoundd = 0;
         int nummatchFoundd1 = 0;
-        int error = 0;
+        // if required then for finding any random app use explorer.exe ->
+        // shell:AppsFolder
+        // in this window use eFriend's ability to see and percive and search for the
+        // required app
+        // near 100% chance for all launchable apps
+        // need to define like queries asking for "apps" explicitly only use this
         while (i < 1) {
-            String app = input.nextLine().strip();
-            Pattern pattern8 = Pattern.compile(".", Pattern.LITERAL);
+            int error = 0;
+            String app = input.nextLine().strip().toLowerCase();
             Matcher matcher8 = pattern8.matcher(app);
             boolean matchFound8 = matcher8.find();
-            if (matchup("Open ", app)) {
-                String[] arrOfStr = app.split("(?i)open ", 2);
+            if (app.contains("open ")) {
+                String[] arrOfStr = app.split("open ", 2);
                 String appli = arrOfStr[1].strip();
                 String appliplus = appli.replaceAll(" ", "+");
-                Pattern patternw = Pattern.compile("www.", Pattern.CASE_INSENSITIVE | Pattern.LITERAL);
-                Matcher matcherw = patternw.matcher(appli);
-                boolean matchFoundw = matcherw.find();
-                if (matchFoundw && !matchup("http", appli)) {
+                if (appli.contains("www.") && !(appli.contains("http"))) {
                     try {
                         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                             Desktop.getDesktop().browse(new URI("http://" + appli));
@@ -89,14 +127,24 @@ public class eFriend {
                         voicemsg("Sorry!Can't reach this webpage.");
                         voicemsg("Please check the URL");
                     }
-                } else if (matchup_literal(".com", appli) || matchup_literal(".in", appli)
-                        || matchup_literal(".org", appli) || matchup_literal(".gov", appli)
-                        || matchup_literal(".ai", appli)) {
-                    if (matchup("http", appli)) {
+                } else if (appli.contains(".com") || appli.contains(".in")
+                        || appli.contains(".org") || appli.contains(".gov")
+                        || appli.contains(".ai")) {
+                    if ((appli.contains("http"))) {
+                        String web;
+                        if (!appli.contains("://")) {
+                            if (appli.contains("https")) {
+                                web = "https://" + appli.split("https")[1].strip();
+                            } else {
+                                web = "http://" + appli.split("http")[1].strip();
+                            }
+                        } else {
+                            web = appli;
+                        }
                         try {
                             if (Desktop.isDesktopSupported()
                                     && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                                Desktop.getDesktop().browse(new URI(appli));
+                                Desktop.getDesktop().browse(new URI(web));
                             }
                         } catch (Exception ee) {
                             voicemsg("Sorry!Can't reach this webpage.");
@@ -132,95 +180,86 @@ public class eFriend {
                                             && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                                         Desktop.getDesktop().browse(new URI(appli + ".exe"));
                                     }
-                                }
-
-                                catch (Exception EEEe) {
-                                    try (Scanner myReader = new Scanner(new File("DATABASEKABASIC.txt"))) {
-                                        while (myReader.hasNextLine()) {
-                                            String database = myReader.nextLine();
-                                            Pattern patternd = Pattern.compile("|" + appli + "|",
-                                                    Pattern.LITERAL | Pattern.CASE_INSENSITIVE);
-                                            Matcher matcherd = patternd.matcher(database);
-                                            boolean matchFoundd = matcherd.find();
-                                            if (matchFoundd) {
-                                                nummatchFoundd = 1;
-                                                String[] arrOfdatabase = database.split(":", 2);
-                                                System.out.print(arrOfdatabase[1]);
+                                } catch (Exception eq) {
+                                    String appAction = getApp(appli);
+                                    try {
+                                        ProcessBuilder processBuilder = new ProcessBuilder(
+                                                "cmd.exe",
+                                                "/c",
+                                                "Start", appAction);
+                                        processBuilder.start();
+                                    } catch (Exception ed) {
+                                        try {
+                                            if (Desktop.isDesktopSupported() && Desktop.getDesktop()
+                                                    .isSupported(Desktop.Action.BROWSE)) {
+                                                Desktop.getDesktop()
+                                                        .browse(new URI(appAction));
+                                            }
+                                        } catch (Exception eeE) {
+                                            try {
+                                                appAction = getApp(appli + " website");
+                                                if (Desktop.isDesktopSupported() && Desktop
+                                                        .getDesktop()
+                                                        .isSupported(Desktop.Action.BROWSE)) {
+                                                    Desktop.getDesktop()
+                                                            .browse(new URI(appAction));
+                                                }
+                                            } catch (Exception eeee) {
                                                 try {
-                                                    ProcessBuilder processBuilder = new ProcessBuilder("cmd.exe", "/c",
-                                                            "Start", arrOfdatabase[1]);
-                                                    processBuilder.start();
-                                                } catch (Exception ed) {
+                                                    Desktop.getDesktop().open(new File(appli));
+                                                } catch (Exception el) {
                                                     try {
-                                                        if (Desktop.isDesktopSupported() && Desktop.getDesktop()
-                                                                .isSupported(Desktop.Action.BROWSE)) {
-                                                            Desktop.getDesktop().browse(new URI(arrOfdatabase[1]));
-                                                        }
-                                                    } catch (Exception eeE) {
-                                                        String database1 = myReader.nextLine();
-                                                        Pattern patternd1 = Pattern.compile("|" + appli + " website|",
-                                                                Pattern.LITERAL | Pattern.CASE_INSENSITIVE);
-                                                        Matcher matcherd1 = patternd1.matcher(database1);
-                                                        boolean matchFoundd1 = matcherd1.find();
-                                                        if (matchFoundd1) {
-                                                            nummatchFoundd1 = 1;
-                                                            String[] arrOfdatabase1 = database1.split(":", 2);
-                                                            System.out.print(arrOfdatabase1[1]);
-                                                            try {
-                                                                if (Desktop.isDesktopSupported() && Desktop.getDesktop()
-                                                                        .isSupported(Desktop.Action.BROWSE)) {
-                                                                    Desktop.getDesktop()
-                                                                            .browse(new URI(arrOfdatabase1[1]));
-                                                                }
-                                                            } catch (Exception eeee) {
+                                                        if (new File(appli).exists()) {
+                                                            ProcessBuilder processBuilder = new ProcessBuilder(
+                                                                    "explorer.exe",
+                                                                    appli);
+                                                            Process process = processBuilder.start();
+                                                            process.waitFor();
+                                                        } else
+                                                            throw new Exception("Invalid File Path");
+                                                    } catch (Exception ek) {
+                                                        try {
+                                                            List<Path> searchResult = sending_query
+                                                                    .file_search(appli);
+                                                            if (searchResult.size() == 1) {
+                                                                Path file = searchResult.get(0);
                                                                 try {
-                                                                    if (Desktop.isDesktopSupported()
-                                                                            && Desktop.getDesktop().isSupported(
-                                                                                    Desktop.Action.BROWSE)) {
-                                                                        Desktop.getDesktop().browse(new URI(
-                                                                                "search-ms:displayname=Searching%20in%20your%20device&crumb=System.Generic.String%3A"
-                                                                                        + arrOfdatabase[1]
-                                                                                                .replaceAll(" ", "+")));
+                                                                    Desktop.getDesktop().open(file.toFile());
+                                                                } catch (Exception em) {
+                                                                    try {
+                                                                        ProcessBuilder processBuilder = new ProcessBuilder(
+                                                                                "explorer.exe",
+                                                                                file.toString());
+                                                                        Process process = processBuilder
+                                                                                .start();
+                                                                        process.waitFor();
+                                                                    } catch (Exception eqq) {
+                                                                        error = 1;
                                                                     }
-                                                                } catch (Exception eee) {
-                                                                    System.out.println(eee);
                                                                 }
+                                                            } else {
+                                                                voicemsg("List of related files shown");
+                                                                error = -1;// only to avoid opening voicemsg
                                                             }
-
+                                                        } catch (Exception eee) {
+                                                            error = 1;
                                                         }
                                                     }
                                                 }
-                                                break;
                                             }
                                         }
-                                    } catch (FileNotFoundException er) {
-                                        error = 1;
-
                                     }
-                                    if (nummatchFoundd != 1 && nummatchFoundd1 != 1) {
-
-                                        try {
-                                            ProcessBuilder processBuilder = new ProcessBuilder("explorer.exe",
-                                                    "ms-search:query=" + appliplus);
-                                            Process process = processBuilder.start();
-                                            process.waitFor();
-
-                                        } catch (Exception eee) {
-                                            error = 1;
-                                        }
-                                    }
-
                                 }
-
                             }
-                            if (error == 1) {
-                                voicemsg("Sorry I am Unable to reach " + appli + " at the moment");
-                            } else {
-                                voicemsg("Opening " + appli);
-                            }
+                        }
+                        if (error == 1) {
+                            voicemsg("Sorry I am Unable to reach " + appli + " at the moment");
+                        } else if (error == 0) {
+                            voicemsg("Opening " + appli);
                         }
                     }
                 }
+                // <>
             } else if (matchup("Learn", app) || matchup("Learn this", app) || matchup("Learn that", app)
                     || matchup("remember", app) || matchup("remember this", app) || matchup("remember that", app)) {
                 String[] arrOfStr;
@@ -384,10 +423,8 @@ public class eFriend {
                     voicemsg("I am really sorry I don't got what you said just");
                 }
             } else if (matchFound8) {
-                Pattern patternh = Pattern.compile("http://", Pattern.CASE_INSENSITIVE);
                 Matcher matcherh = patternh.matcher(app);
-                boolean matchFoundh = matcherh.find();
-                if (matchFoundh) {
+                if (matcherh.find()) {
                     try {
                         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                             Desktop.getDesktop().browse(new URI(app));
