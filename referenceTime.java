@@ -10,7 +10,7 @@ public class referenceTime {
     final static Pattern yday = Pattern.compile("(?i)\\byday\\b");
     final static Pattern tmrw = Pattern.compile("(?i)\\btmrw\\b");
     final static Pattern _2mrw = Pattern.compile("(?i)\\b2mrw\\b");
-    final static Pattern Ago = Pattern.compile("(?i)(\\d+|a) \\b(day|month|year|week|hour|hr)(s)? ago\\b");
+    final static Pattern Ago = Pattern.compile("(?i)(\\d+|a) \\b(day|month|year|week|hour|hr)(s)? (ago|back)\\b");
     final static Pattern IN = Pattern.compile("(?i)in (\\d+|a) \\b(day|month|year|week|hour|hr)(s)?\\b");
     final static Pattern InRange = Pattern
             .compile(

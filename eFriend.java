@@ -1,17 +1,15 @@
 import java.awt.Desktop;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URI;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Write a description of class eFriend here.
@@ -45,21 +43,7 @@ public class eFriend {
         }
     }
 
-    static boolean matchup(String word, String value) {
-        Pattern pattern = Pattern.compile(word, Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(value);
-        boolean matchFound = matcher.find();
-        return matchFound;
-    }
-
-    static boolean matchup_literal(String word, String value) {
-        Pattern pattern = Pattern.compile(word, Pattern.CASE_INSENSITIVE | Pattern.LITERAL);
-        Matcher matcher = pattern.matcher(value);
-        boolean matchFound = matcher.find();
-        return matchFound;
-    }
-
-    static HashMap<String, String> AppList = new HashMap<String, String>();
+    static final HashMap<String, String> AppList = new HashMap<String, String>();
 
     static void loadApps() {
         try (BufferedReader myReader = new BufferedReader(
@@ -87,37 +71,150 @@ public class eFriend {
         return AppList.get(app);
     }
 
-    final static Pattern pattern8 = Pattern.compile(".", Pattern.LITERAL);
-    final static Pattern patternh = Pattern.compile("http", Pattern.CASE_INSENSITIVE);
+    private static void nonwebSupport(String appli) {
+        byte error = 0;
+        Runtime rt = Runtime.getRuntime();
+        try {
+            rt.exec(appli.split(" "));
+        } catch (Exception e) {
+            try {
+                rt.exec((appli + ".exe").split(" "));
+            } catch (Exception erk) {
+                try {
+                    if (Desktop.isDesktopSupported()
+                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(new URI(appli));
+                    }
+                } catch (Exception ee) {
+                    try {
+                        if (Desktop.isDesktopSupported()
+                                && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                            Desktop.getDesktop().browse(new URI(appli + ".exe"));
+                        }
+                    } catch (Exception eq) {
+                        String appAction;
+                        appAction = getApp(appli);
+                        try {
+                            if (appAction == null)
+                                throw new NullPointerException("App not in the list");
+                            ProcessBuilder processBuilder = new ProcessBuilder(
+                                    "cmd.exe",
+                                    "/c",
+                                    "Start", appAction);
+                            processBuilder.start();
+                        } catch (Exception ed) {
+                            try {
+                                if (appAction == null)
+                                    throw new NullPointerException("App not in the list");
+                                if (Desktop.isDesktopSupported() && Desktop.getDesktop()
+                                        .isSupported(Desktop.Action.BROWSE)) {
+                                    Desktop.getDesktop()
+                                            .browse(new URI(appAction));
+                                }
+                            } catch (Exception eeE) {
+                                try {
+                                    appAction = getApp(appli + " website");
+                                    if (appAction == null)
+                                        throw new NullPointerException("Website not in the list");
+                                    if (Desktop.isDesktopSupported() && Desktop
+                                            .getDesktop()
+                                            .isSupported(Desktop.Action.BROWSE)) {
+                                        Desktop.getDesktop()
+                                                .browse(new URI(appAction));
+                                    }
+                                } catch (Exception eeee) {
+                                    try {
+                                        Desktop.getDesktop().open(new File(appli));
+                                    } catch (Exception el) {
+                                        try {
+                                            if (new File(appli).exists()) {
+                                                ProcessBuilder processBuilder = new ProcessBuilder(
+                                                        "explorer.exe",
+                                                        appli);
+                                                Process process = processBuilder.start();
+                                                process.waitFor();
+                                            } else
+                                                throw new Exception("Invalid File Path");
+                                        } catch (Exception ek) {
+                                            try {
+                                                int size;
+                                                List<Path> searchResult = sending_query
+                                                        .file_search(appli);
+                                                if (searchResult == null || (size = searchResult.size()) == 0) {
+                                                    throw new Exception("no related file found in the system");
+                                                } else if (size == 1) {
+                                                    Path file = searchResult.get(0);
+                                                    try {
+                                                        Desktop.getDesktop().open(file.toFile());
+                                                    } catch (Exception em) {
+                                                        try {
+                                                            ProcessBuilder processBuilder = new ProcessBuilder(
+                                                                    "explorer.exe",
+                                                                    file.toString());
+                                                            Process process = processBuilder
+                                                                    .start();
+                                                            process.waitFor();
+                                                        } catch (Exception eqq) {
+                                                            error = 1;
+                                                        }
+                                                    }
+                                                } else {
+                                                    voicemsg("List of related files shown");
+                                                    error = -1;// only to avoid opening voicemsg
+                                                }
+                                            } catch (Exception eee) {
+                                                error = 1;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if (error == 1) {
+                try {
+                    if (Desktop.isDesktopSupported() && Desktop.getDesktop()
+                            .isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(
+                                new URI("https://www.google.com/search?q="
+                                        + appli.replaceAll(" ", "+")));
+                    }
+                } catch (Exception EEEE) {
+                    voicemsg("Sorry! can't get info regarding " + appli);
+                }
+            } else if (error == 0) {
+                voicemsg("Opening " + appli);
+            }
+        }
+    }
 
+    // there are some cases where its misfiring like 'open allen act papers'
+    // this is somehow instead opens ssc X papers pdf
+    // also in case of multiple outputs at times this the last one have more garbage
+    // values
+    // and its shown even when there even if they are outnumbered
     public static void main(String[] args) {
         loadApps();
+        AccessData.loadData();
         Scanner input = new Scanner(System.in);
         // voicemsg("i am ur Friend");
         voicemsg("Welcome");
-        // voicemsg("How can i help you!");
-        // voicemsg("To open any file from your device say'open'");
-        // voicemsg(
-        // "I can learn info and later tell u. To make me learn say 'Learn that' and to
-        // access it later use 'What is'");
-        int i = 0;
-        int nummatchFoundd = 0;
-        int nummatchFoundd1 = 0;
+        boolean _continue = true;
         // if required then for finding any random app use explorer.exe ->
         // shell:AppsFolder
         // in this window use eFriend's ability to see and percive and search for the
         // required app
         // near 100% chance for all launchable apps
         // need to define like queries asking for "apps" explicitly only use this
-        while (i < 1) {
-            int error = 0;
+        while (_continue) {
             String app = input.nextLine().strip().toLowerCase();
-            Matcher matcher8 = pattern8.matcher(app);
-            boolean matchFound8 = matcher8.find();
+            String appspace = " " + app + " ";
+            String Qword;
             if (app.contains("open ")) {
                 String[] arrOfStr = app.split("open ", 2);
                 String appli = arrOfStr[1].strip();
-                String appliplus = appli.replaceAll(" ", "+");
                 if (appli.contains("www.") && !(appli.contains("http"))) {
                     try {
                         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
@@ -127,9 +224,7 @@ public class eFriend {
                         voicemsg("Sorry!Can't reach this webpage.");
                         voicemsg("Please check the URL");
                     }
-                } else if (appli.contains(".com") || appli.contains(".in")
-                        || appli.contains(".org") || appli.contains(".gov")
-                        || appli.contains(".ai")) {
+                } else if (appli.contains(".") && !(appli.contains(" "))) {
                     if ((appli.contains("http"))) {
                         String web;
                         if (!appli.contains("://")) {
@@ -152,6 +247,12 @@ public class eFriend {
                         }
                     } else {
                         try {
+                            InetAddress.getByName(appli);// this method tries to resolve given name into
+                        } catch (Exception p) {
+                            nonwebSupport(appli);
+                            continue;
+                        }
+                        try {
                             if (Desktop.isDesktopSupported()
                                     && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                                 Desktop.getDesktop().browse(new URI("http://" + appli));
@@ -162,291 +263,212 @@ public class eFriend {
                         }
                     }
                 } else {
-                    Runtime rt = Runtime.getRuntime();
-                    try {
-                        rt.exec(appli.split(" "));
-                    } catch (Exception e) {
-                        try {
-                            rt.exec((appli + ".exe").split(" "));
-                        } catch (Exception erk) {
-                            try {
-                                if (Desktop.isDesktopSupported()
-                                        && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                                    Desktop.getDesktop().browse(new URI(appli));
-                                }
-                            } catch (Exception ee) {
-                                try {
-                                    if (Desktop.isDesktopSupported()
-                                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                                        Desktop.getDesktop().browse(new URI(appli + ".exe"));
-                                    }
-                                } catch (Exception eq) {
-                                    String appAction = getApp(appli);
-                                    try {
-                                        ProcessBuilder processBuilder = new ProcessBuilder(
-                                                "cmd.exe",
-                                                "/c",
-                                                "Start", appAction);
-                                        processBuilder.start();
-                                    } catch (Exception ed) {
-                                        try {
-                                            if (Desktop.isDesktopSupported() && Desktop.getDesktop()
-                                                    .isSupported(Desktop.Action.BROWSE)) {
-                                                Desktop.getDesktop()
-                                                        .browse(new URI(appAction));
-                                            }
-                                        } catch (Exception eeE) {
-                                            try {
-                                                appAction = getApp(appli + " website");
-                                                if (Desktop.isDesktopSupported() && Desktop
-                                                        .getDesktop()
-                                                        .isSupported(Desktop.Action.BROWSE)) {
-                                                    Desktop.getDesktop()
-                                                            .browse(new URI(appAction));
-                                                }
-                                            } catch (Exception eeee) {
-                                                try {
-                                                    Desktop.getDesktop().open(new File(appli));
-                                                } catch (Exception el) {
-                                                    try {
-                                                        if (new File(appli).exists()) {
-                                                            ProcessBuilder processBuilder = new ProcessBuilder(
-                                                                    "explorer.exe",
-                                                                    appli);
-                                                            Process process = processBuilder.start();
-                                                            process.waitFor();
-                                                        } else
-                                                            throw new Exception("Invalid File Path");
-                                                    } catch (Exception ek) {
-                                                        try {
-                                                            List<Path> searchResult = sending_query
-                                                                    .file_search(appli);
-                                                            if (searchResult.size() == 1) {
-                                                                Path file = searchResult.get(0);
-                                                                try {
-                                                                    Desktop.getDesktop().open(file.toFile());
-                                                                } catch (Exception em) {
-                                                                    try {
-                                                                        ProcessBuilder processBuilder = new ProcessBuilder(
-                                                                                "explorer.exe",
-                                                                                file.toString());
-                                                                        Process process = processBuilder
-                                                                                .start();
-                                                                        process.waitFor();
-                                                                    } catch (Exception eqq) {
-                                                                        error = 1;
-                                                                    }
-                                                                }
-                                                            } else {
-                                                                voicemsg("List of related files shown");
-                                                                error = -1;// only to avoid opening voicemsg
-                                                            }
-                                                        } catch (Exception eee) {
-                                                            error = 1;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (error == 1) {
-                            voicemsg("Sorry I am Unable to reach " + appli + " at the moment");
-                        } else if (error == 0) {
-                            voicemsg("Opening " + appli);
-                        }
-                    }
+                    nonwebSupport(appli);
                 }
                 // <>
-            } else if (matchup("Learn", app) || matchup("Learn this", app) || matchup("Learn that", app)
-                    || matchup("remember", app) || matchup("remember this", app) || matchup("remember that", app)) {
+            } else if (appspace.contains(" learn ")
+                    || appspace.contains(" remember ")) {
                 String[] arrOfStr;
-                if (matchup("Learn that", app))
-                    arrOfStr = app.split("(?i)learn that", 2);
-                else if (matchup("Learn this", app))
-                    arrOfStr = app.split("(?i)learn this", 2);
-                else if (matchup("remember that", app))
-                    arrOfStr = app.split("(?i)remember that", 2);
-                else if (matchup("remember this", app))
-                    arrOfStr = app.split("(?i)remember this", 2);
-                else if (matchup("Learn", app))
-                    arrOfStr = app.split("(?i)learn", 2);
+                if (app.contains("learn that"))
+                    arrOfStr = app.split("learn that", 2);
+                else if (app.contains("learn this"))
+                    arrOfStr = app.split("learn this", 2);
+                else if (app.contains("remember that"))
+                    arrOfStr = app.split("remember that", 2);
+                else if (app.contains("remember this"))
+                    arrOfStr = app.split("remember this", 2);
+                else if (app.contains("learn"))
+                    arrOfStr = app.split("learn", 2);
                 else
-                    arrOfStr = app.split("(?i)remember", 2);
+                    arrOfStr = app.split("remember", 2);
                 for (String appli : arrOfStr) {
-                    boolean matchFoundis = matchup(" is ", appli);
-                    boolean matchFoundist = matchup(" is the ", appli);
-                    boolean matchFoundas = matchup(" as ", appli);
-                    boolean matchFoundast = matchup(" as the ", appli);
-                    int nummatchFoundf = 0;
-                    if (matchFoundis || matchFoundas || matchFoundist || matchFoundast) {
-                        String a, x;
-                        if (matchFoundist) {
-                            String[] applix = appli.split("(?i) is the ", 2);
-                            a = "|" + applix[0].strip() + "|";
-                            x = "|" + applix[1].strip() + "|";
-                        } else if (matchFoundis) {
-                            String[] applix = appli.split("(?i) is ", 2);
-                            a = "|" + applix[0].strip() + "|";
-                            x = "|" + applix[1].strip() + "|";
-                        } else if (matchFoundast) {
-                            String[] applix = appli.split("(?i) as the ", 2);
-                            a = "|" + applix[0].strip() + "|";
-                            x = "|" + applix[1].strip() + "|";
-                        } else {
-                            String[] applix = appli.split("(?i) as ", 2);
-                            a = "|" + applix[0].strip() + "|";
-                            x = "|" + applix[1].strip() + "|";
-                        }
-                        try (Scanner myReader = new Scanner(new File("friendshipkasahimatlab.txt"));) {
-                            while (myReader.hasNextLine()) {
-                                String fd = myReader.nextLine();
-                                Pattern patternf = Pattern.compile(a, Pattern.CASE_INSENSITIVE | Pattern.LITERAL);
-                                Matcher matcherf = patternf.matcher(fd);
-                                boolean matchFoundf = matcherf.find();
-                                String ans;
-                                if (matchFoundf) {
-                                    nummatchFoundf = 1;
-                                    try {
-                                        String[] arrOffd = fd.split(":", 2);
-                                        if (arrOffd[0].equalsIgnoreCase(a)) {
-                                            ans = arrOffd[1];
+                    if (appli != null && appli.strip() != "") {
+                        boolean matchFoundis = appli.contains(" is ");
+                        boolean matchFoundist = appli.contains(" is the ");
+                        boolean matchFoundas = appli.contains(" as ");
+                        boolean matchFoundast = appli.contains(" as the ");
+                        if (matchFoundis || matchFoundas || matchFoundist || matchFoundast) {
+                            String[] applix;
+                            if (matchFoundist) {
+                                applix = appli.split(" is the ", 2);
+                            } else if (matchFoundis) {
+                                applix = appli.split(" is ", 2);
+                            } else if (matchFoundast) {
+                                applix = appli.split(" as the ", 2);
+                            } else {
+                                applix = appli.split(" as ", 2);
+                            }
+                            ArrayList<ArrayList<AccessData>> previous = new ArrayList<ArrayList<AccessData>>();
+                            // this needs to be a arraylist as Array of ArrayList is not allowed; the size
+                            // is
+                            // strictly 2.
+                            boolean[] exists = new boolean[2];
+                            boolean match = false;
+                            for (int i = 0; i < 2; i++) {
+                                previous.add(AccessData.getData(applix[i]));
+                                exists[i] = (previous.get(i).size() != 0);
+                            }
+                            if (exists[0] && exists[1]) {
+                                for (AccessData access : previous.get(0)) {
+                                    if (access.data.equalsIgnoreCase(applix[1])) {
+                                        match = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (match)
+                                voicemsg("Ya! you once told me about that");
+                            else {
+                                voicemsg("This contradicts with some previous info, you gave");
+                                if (exists[0] ^ exists[1]) {
+                                    int k;
+                                    if (exists[0])
+                                        k = 0;
+                                    else
+                                        k = 1;
+                                    ArrayList<AccessData> accessArr = previous.get(k);
+                                    if (accessArr.size() == 1) {
+                                        System.out.println(applix[k]
+                                                + " is " + previous.get(k).get(0).data);
+                                        voicemsg("Should I change this info or just add this as new?");
+                                        String reply = " " + input.nextLine().toLowerCase() + " ";
+                                        // reply.contains(" yes ") || reply.contains(" ys ")
+                                        // || reply.contains(" ya ")
+                                        // || reply.contains(" sure ") ||
+                                        if (((reply.contains(" change "))
+                                                && !(reply.contains(" no ") || (reply.contains(" not ")
+                                                        || reply.contains(" donot ") || reply.contains(" don't ")))
+                                        // || (reply.equals("why not"))
+                                        )) {
+                                            try {
+                                                AccessData.replaceWith(previous.get(k).get(0).index, applix);
+                                                voicemsg("Change made!");
+                                            } catch (Exception e) {
+                                                voicemsg("Sorry changes failed");
+                                            }
+                                        } else if ((reply.contains(" new ") || reply.contains(" add "))
+                                                && !(reply.contains(" no ") || reply.contains(" not ")
+                                                        || reply.contains(" donot ") || reply.contains(" don't "))) {
+                                            try {
+                                                AccessData.addData(applix);
+                                                voicemsg("New data added");
+                                            } catch (Exception e) {
+                                                voicemsg("Sorry addition failed");
+                                            }
                                         } else {
-                                            ans = arrOffd[0];
+                                            voicemsg("No change made!");
                                         }
-                                        if ((x).equalsIgnoreCase(ans)) {
-                                            voicemsg("Ok! you once told me about that");
-                                        } else {
-                                            for (int chance = 0; chance < 2; chance++) {
-                                                String anss = ans.replaceAll("[|]", "");
-                                                if (chance == 0) {
-                                                    voicemsg("But last time you told that it is " + anss);
-                                                    voicemsg("Should I change this info ?");
-                                                }
-                                                String reply = input.nextLine();
-                                                boolean matchFoundy = matchup("yes", reply);
-                                                boolean matchFoundn = matchup("no", reply);
-                                                if (matchFoundn) {
-                                                    voicemsg("ok! No change made");
-                                                    break;
-                                                } else if (matchFoundy) {
-                                                    try (Scanner myReadertemp = new Scanner(
-                                                            new File("friendshipkasahimatlab.txt"))) {
-                                                        while (myReadertemp.hasNextLine()) {
-                                                            String temp = myReadertemp.nextLine();
-                                                            try (FileWriter myWriter = new FileWriter(
-                                                                    "friendshipkasahimatlab_temp.txt", true)) {
-                                                                Pattern patternans = Pattern.compile(ans,
-                                                                        Pattern.LITERAL | Pattern.CASE_INSENSITIVE);
-                                                                Matcher matcherans = patternans.matcher(temp);
-                                                                boolean matchFoundans = matcherans.find();
-                                                                if (matchFoundans)
-                                                                    myWriter.write(a + ":" + x + "\n");
-                                                                else
-                                                                    myWriter.write(temp + "\n");
-                                                            } catch (Exception temperr) {
-                                                                System.out.println(temperr);
-                                                            }
-                                                        }
-                                                        try (Scanner myReadert = new Scanner(
-                                                                new File("friendshipkasahimatlab_temp.txt"))) {
-                                                            try (FileWriter myWriterc = new FileWriter(
-                                                                    "friendshipkasahimatlab.txt")) {
-                                                                myWriterc.write("");
-                                                            } catch (Exception ew) {
-                                                                System.out.println(ew);
-                                                            }
-                                                            try (FileWriter myWriter = new FileWriter(
-                                                                    "friendshipkasahimatlab.txt", true)) {
-                                                                while (myReadert.hasNextLine()) {
-                                                                    myWriter.write(myReadert.nextLine() + "\n");
-                                                                }
-                                                                voicemsg("Ok! Now I understood it correctly");
-
-                                                                voicemsg("I will give this correct info next time");
-                                                            } catch (Exception emw) {
-                                                                System.out.println(emw);
-                                                            }
-                                                            try (FileWriter myWritercl = new FileWriter(
-                                                                    "friendshipkasahimatlab_temp.txt")) {
-                                                                myWritercl.write("");
-                                                            } catch (Exception ewm1) {
-                                                                System.out.println(ewm1);
-                                                            }
-
-                                                        } catch (IOException ef) {
-                                                            voicemsg("Sorry! I didn't understand");
-                                                        }
-                                                        break;
-                                                    } catch (Exception eq) {
-                                                        System.out.println(eq);
-                                                    }
-                                                } else {
-                                                    voicemsg("Please give a clear yes or no reply");
-                                                }
+                                    } else {
+                                        ArrayList<Integer> intList = new ArrayList<Integer>();
+                                        for (int i = 0; i < accessArr.size(); i++) {
+                                            System.out.println(
+                                                    previous.get(k).get(i).index + " = = " + applix[k]
+                                                            + " is " + previous.get(k).get(i).data);
+                                            intList.add(previous.get(k).get(i).index);
+                                        }
+                                        voicemsg("Which one should or just add this as new?");
+                                        String change = input.nextLine().toLowerCase();
+                                        try {
+                                            int line = Integer.parseInt(change);
+                                            if (intList.contains(line)) {
+                                                AccessData.replaceWith(line, applix);
+                                                voicemsg("Changes made");
+                                            } else {
+                                                voicemsg("Sorry the value entered is not the expected one");
+                                                voicemsg("No change made");
+                                            }
+                                        } catch (Exception e) {
+                                            if (change.contains(" add ") || change.contains(" new ")) {
+                                                AccessData.addData(applix);
+                                                voicemsg("New data added");
+                                            } else {
+                                                voicemsg("No change made");
                                             }
                                         }
-                                    } catch (Exception EEE) {
-                                        voicemsg("Yes U once told me something about that.can you please try again");
                                     }
-                                    break;
+                                } else if (exists[0] && exists[1] && !match) {
+                                    // well which one to etdit?<obviously this will happen rarely better ask user>
+                                    // (1)remove 1 or 2 (2)add new keep old<again rare>
+                                    ArrayList<Integer> intList = new ArrayList<Integer>();
+                                    for (int i = 0; i < 2; i++) {
+                                        for (AccessData access : previous.get(i)) {
+                                            System.out.println(access.index + " = = " + applix[i].replace("|", "")
+                                                    + " is " +
+                                                    access.data.replace("|", ""));
+                                            intList.add(access.index);
+                                        }
+                                    }
+                                    voicemsg("Which one should or just add this as new?");
+                                    String change = input.nextLine().toLowerCase();
+                                    try {
+                                        int line = Integer.parseInt(change);
+                                        if (intList.contains(line)) {
+                                            AccessData.replaceWith(line, applix);
+                                            voicemsg("Replacement made");
+                                        } else {
+                                            voicemsg("Sorry the value entered is not the expected one");
+                                            voicemsg("No change made");
+                                        }
+                                    } catch (Exception e) {
+                                        if (change.contains(" add ") || change.contains(" new ")) {
+                                            AccessData.addData(applix);
+                                            voicemsg("New data added");
+                                        } else {
+                                            voicemsg("No change made");
+                                        }
+                                    }
+
+                                } else {
+                                    AccessData.addData(applix);
                                 }
                             }
-                            if (nummatchFoundf == 0) {
-                                try (FileWriter myWriter = new FileWriter("friendshipkasahimatlab.txt", true)) {
-                                    myWriter.write("\n" + a + ":" + x);
-                                    voicemsg("ok! Now I have learnt that.");
-                                } catch (Exception fe) {
-                                    System.out.println(fe);
-                                }
+                        }
+                    }
+                }
+            } else if (appspace.contains(" what ") || appspace.contains(" who ") || appspace.contains(" where ")
+                    || appspace.contains(" when ")) {
+                if (appspace.contains(" what "))
+                    Qword = "what";
+                else if (appspace.contains(" who "))
+                    Qword = "who";
+                else if (appspace.contains(" where "))
+                    Qword = "where";
+                else
+                    Qword = "when";
+                boolean getLost = false;
+                app = app.replace(Qword, "");
+                for (String[] topic : AccessData.DataTable) {
+                    if (getLost) {
+                        break;
+                    }
+                    for (int i = 0; i < 2; i++) {
+                        if (appspace.contains(" " + topic[i] + " ")) {
+                            if (app.replace(topic[i], "").split(" ").length < 3) {
+                                System.out.println(topic[i] + " is " + topic[i == 0 ? 1 : 0]);
+                                getLost = true;
+                                break;
                             }
-                        } catch (Exception eeeeeee) {
-                            voicemsg(
-                                    "Sorry! due to some internal error I didn't saved any new data. You can try again");
                         }
-
                     }
                 }
-            } else if (matchup("what", app) || matchup("who", app) || matchup("when", app)) {// start from here we have
-                                                                                             // to remove whfamily and
-                                                                                             // helping verbs and also
-                                                                                             // articles
-                if (matchup("what", app)) {
-                }
-                try (Scanner myReader1 = new Scanner(new File("friendshipkasahimatlab.txt"))) {
-                    while (myReader1.hasNextLine()) {
-
-                    }
-                } catch (FileNotFoundException ea) {
-                    voicemsg("I am really sorry I don't got what you said just");
-                }
-            } else if (matchFound8) {
-                Matcher matcherh = patternh.matcher(app);
-                if (matcherh.find()) {
+                if (!getLost) {
                     try {
-                        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                            Desktop.getDesktop().browse(new URI(app));
+                        if (Desktop.isDesktopSupported() && Desktop.getDesktop()
+                                .isSupported(Desktop.Action.BROWSE)) {
+                            Desktop.getDesktop().browse(
+                                    new URI("https://www.google.com/search?q="
+                                            + app.replaceAll(" ", "+")));
                         }
-                    } catch (Exception eE) {
-                    }
-                } else {
-                    try {
-                        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                            Desktop.getDesktop().browse(new URI("http://" + app));
-                        }
-                    } catch (Exception eE) {
+                    } catch (Exception EEEE) {
+                        voicemsg("Sorry! can't get info regarding " + app);
                     }
                 }
 
-            }
-
-            else if (app.equalsIgnoreCase("end") || matchup(" end ", " " + app + " ")
-                    || matchup(" bye ", " " + app + " ") || matchup(" see you ", " " + app + " ")
-                    || matchup(" good night ", " " + app + " ")) {
+            } else if (app.equalsIgnoreCase("end") || appspace.contains(" end ")
+                    || appspace.contains(" bye ") || appspace.contains(" see you ")
+                    || appspace.contains(" good night ")) {
                 voicemsg("bye");
-                i++;
+                _continue = false;
             } else {
                 String appplus = app.replaceAll(" ", "+");
                 Runtime rt = Runtime.getRuntime();
@@ -457,75 +479,62 @@ public class eFriend {
                         if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                             Desktop.getDesktop().browse(new URI(app));
                         }
-                    } catch (Exception ee) {
-                        try (Scanner myReader = new Scanner(new File("DATABASEKABASIC.txt"))) {
-                            while (myReader.hasNextLine()) {
-                                String database = myReader.nextLine();
-                                Pattern patternd = Pattern.compile("|" + app + "|",
-                                        Pattern.LITERAL | Pattern.CASE_INSENSITIVE);
-                                Matcher matcherd = patternd.matcher(database);
-                                boolean matchFoundd = matcherd.find();
-                                if (matchFoundd) {
-                                    nummatchFoundd = 1;
-                                    String[] arrOfdatabase = database.split(":", 2);
-                                    voicemsg(arrOfdatabase[1]);
-                                    try {
-                                        if (Desktop.isDesktopSupported()
-                                                && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                                            Desktop.getDesktop().browse(new URI(arrOfdatabase[1]));
-                                        }
-                                    } catch (Exception eeE) {
-                                        String database1 = myReader.nextLine();
-                                        Pattern patternd1 = Pattern.compile("|" + app + " website|",
-                                                Pattern.LITERAL | Pattern.CASE_INSENSITIVE);
-                                        Matcher matcherd1 = patternd1.matcher(database1);
-                                        boolean matchFoundd1 = matcherd1.find();
-                                        if (matchFoundd1) {
-                                            nummatchFoundd1 = 1;
-                                            String[] arrOfdatabase1 = database1.split(":", 2);
-                                            System.out.print(arrOfdatabase1[1]);
-                                            try {
-                                                if (Desktop.isDesktopSupported()
-                                                        && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                                                    Desktop.getDesktop().browse(new URI(arrOfdatabase1[1]));
-                                                }
-                                            } catch (Exception EE) {
-                                                try {
-                                                    if (Desktop.isDesktopSupported() && Desktop.getDesktop()
-                                                            .isSupported(Desktop.Action.BROWSE)) {
-                                                        Desktop.getDesktop().browse(
-                                                                new URI("https://www.google.com/search?q=" + appplus));
-                                                    }
-                                                } catch (Exception EEEE) {
-                                                    voicemsg("Sorry! can't get info regarding " + app);
-                                                }
-                                            }
-                                        }
+                    } catch (Exception ew) {
+                        try {
+                            if (app.contains(".") && !app.contains(" ")) {
+                                InetAddress.getByName(app);
+                                if (Desktop.isDesktopSupported()
+                                        && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                                    Desktop.getDesktop().browse(new URI("http://" + app));
+                                }
+                            } else
+                                throw new Exception("Not a webpage");
+                        } catch (Exception ee) {
+                            String appAction = getApp(app);
+                            try {
+                                if (appAction == null)
+                                    throw new NullPointerException("App not in the list");
+                                ProcessBuilder processBuilder = new ProcessBuilder(
+                                        "cmd.exe",
+                                        "/c",
+                                        "Start", appAction);
+                                processBuilder.start();
+                            } catch (Exception ed) {
+                                try {
+                                    if (appAction == null)
+                                        throw new NullPointerException("App not in the list");
+                                    if (Desktop.isDesktopSupported() && Desktop.getDesktop()
+                                            .isSupported(Desktop.Action.BROWSE)) {
+                                        Desktop.getDesktop()
+                                                .browse(new URI(appAction));
                                     }
-                                    break;
-                                } else {
+                                } catch (Exception eeE) {
                                     try {
-                                        if (Desktop.isDesktopSupported()
-                                                && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                                        appAction = getApp(app + " website");
+                                        if (appAction == null)
+                                            throw new NullPointerException("Website not in the list");
+                                        if (Desktop.isDesktopSupported() && Desktop
+                                                .getDesktop()
+                                                .isSupported(Desktop.Action.BROWSE)) {
                                             Desktop.getDesktop()
-                                                    .browse(new URI("https://www.google.com/search?q=" + appplus));
+                                                    .browse(new URI(appAction));
                                         }
-                                    } catch (Exception EEEE) {
-                                        voicemsg("Sorry! can't get info regarding " + app);
-
+                                    } catch (Exception eq) {
+                                        try {
+                                            if (Desktop.isDesktopSupported() && Desktop.getDesktop()
+                                                    .isSupported(Desktop.Action.BROWSE)) {
+                                                Desktop.getDesktop().browse(
+                                                        new URI("https://www.google.com/search?q="
+                                                                + appplus));
+                                            }
+                                        } catch (Exception EEEE) {
+                                            voicemsg("Sorry! can't get info regarding " + app);
+                                        }
                                     }
-                                    break;
                                 }
                             }
-                        } catch (FileNotFoundException er) {
-                            voicemsg("An error occurred.");
-                            er.printStackTrace();
                         }
                     }
-                    if (error == 2) {
-                        voicemsg("Sorry I am Unable to reach " + app + " at the moment");
-                    }
-
                 }
             }
         }
