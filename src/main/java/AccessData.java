@@ -42,9 +42,9 @@ public class AccessData {
         for (int i = 0; i < DataTable.size(); i++) {
             row = DataTable.get(i);
             if (row[0].equalsIgnoreCase(topic)) {
-                rows.add(new AccessData(i, row[1].toLowerCase()));
+                rows.add(new AccessData(i, row[1].replace("|", "").toLowerCase()));
             } else if (row[1].equalsIgnoreCase(topic)) {
-                rows.add(new AccessData(i, row[0].toLowerCase()));
+                rows.add(new AccessData(i, row[0].replace("|", "").toLowerCase()));
             }
         }
         return rows;

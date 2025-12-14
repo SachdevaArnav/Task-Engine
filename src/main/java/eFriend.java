@@ -19,6 +19,8 @@ import java.util.Scanner;
  * @date start(18/03/2021)
  */
 public class eFriend {
+    static VoiceToText_Whisper myWhisper;
+
     static void voicemsg(String voice) {
         System.out.println(voice);
         try {
@@ -57,7 +59,7 @@ public class eFriend {
                         value = value.replaceFirst(":", "");
                         for (String part : arrOfdata) {
                             if (part != null && (part = part.strip()) != "")
-                                AppList.put(part.replaceAll("////s+", " "), value);
+                                AppList.put(part.replaceAll("////s+", " ").toLowerCase(), value.toLowerCase());
                         }
                     }
                 }
@@ -71,122 +73,168 @@ public class eFriend {
         return AppList.get(app);
     }
 
-    private static void nonwebSupport(String appli) {
+    private static void desktopSupport(String appli) {
         byte error = 0;
+        boolean worked = false;
         Runtime rt = Runtime.getRuntime();
+
         try {
-            rt.exec(appli.split(" "));
-        } catch (Exception e) {
+            // 1. Try direct exec
             try {
-                rt.exec((appli + ".exe").split(" "));
-            } catch (Exception erk) {
+                rt.exec(appli.split(" "));
+                worked = true;
+            } catch (Exception ignored) {
+            }
+
+            // 2. Try .exe
+            if (!worked) {
+                try {
+                    rt.exec((appli + ".exe").split(" "));
+                    worked = true;
+                } catch (Exception ignored) {
+                }
+            }
+
+            // 3. Try browsing as URI
+            if (!worked) {
                 try {
                     if (Desktop.isDesktopSupported()
                             && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                         Desktop.getDesktop().browse(new URI(appli));
+                        worked = true;
                     }
-                } catch (Exception ee) {
-                    try {
-                        if (Desktop.isDesktopSupported()
-                                && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                            Desktop.getDesktop().browse(new URI(appli + ".exe"));
-                        }
-                    } catch (Exception eq) {
-                        String appAction;
-                        appAction = getApp(appli);
-                        try {
-                            if (appAction == null)
-                                throw new NullPointerException("App not in the list");
-                            ProcessBuilder processBuilder = new ProcessBuilder(
-                                    "cmd.exe",
-                                    "/c",
-                                    "Start", appAction);
-                            processBuilder.start();
-                        } catch (Exception ed) {
-                            try {
-                                if (appAction == null)
-                                    throw new NullPointerException("App not in the list");
-                                if (Desktop.isDesktopSupported() && Desktop.getDesktop()
-                                        .isSupported(Desktop.Action.BROWSE)) {
-                                    Desktop.getDesktop()
-                                            .browse(new URI(appAction));
-                                }
-                            } catch (Exception eeE) {
-                                try {
-                                    appAction = getApp(appli + " website");
-                                    if (appAction == null)
-                                        throw new NullPointerException("Website not in the list");
-                                    if (Desktop.isDesktopSupported() && Desktop
-                                            .getDesktop()
-                                            .isSupported(Desktop.Action.BROWSE)) {
-                                        Desktop.getDesktop()
-                                                .browse(new URI(appAction));
-                                    }
-                                } catch (Exception eeee) {
-                                    try {
-                                        Desktop.getDesktop().open(new File(appli));
-                                    } catch (Exception el) {
-                                        try {
-                                            if (new File(appli).exists()) {
-                                                ProcessBuilder processBuilder = new ProcessBuilder(
-                                                        "explorer.exe",
-                                                        appli);
-                                                Process process = processBuilder.start();
-                                                process.waitFor();
-                                            } else
-                                                throw new Exception("Invalid File Path");
-                                        } catch (Exception ek) {
-                                            try {
-                                                int size;
-                                                List<Path> searchResult = sending_query
-                                                        .file_search(appli);
-                                                if (searchResult == null || (size = searchResult.size()) == 0) {
-                                                    throw new Exception("no related file found in the system");
-                                                } else if (size == 1) {
-                                                    Path file = searchResult.get(0);
-                                                    try {
-                                                        Desktop.getDesktop().open(file.toFile());
-                                                    } catch (Exception em) {
-                                                        try {
-                                                            ProcessBuilder processBuilder = new ProcessBuilder(
-                                                                    "explorer.exe",
-                                                                    file.toString());
-                                                            Process process = processBuilder
-                                                                    .start();
-                                                            process.waitFor();
-                                                        } catch (Exception eqq) {
-                                                            error = 1;
-                                                        }
-                                                    }
-                                                } else {
-                                                    voicemsg("List of related files shown");
-                                                    error = -1;// only to avoid opening voicemsg
-                                                }
-                                            } catch (Exception eee) {
-                                                error = 1;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                } catch (Exception ignored) {
                 }
             }
-            if (error == 1) {
+
+            // 4. Try browsing appli.exe as URI
+            if (!worked) {
                 try {
-                    if (Desktop.isDesktopSupported() && Desktop.getDesktop()
-                            .isSupported(Desktop.Action.BROWSE)) {
+                    if (Desktop.isDesktopSupported()
+                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(new URI(appli + ".exe"));
+                        worked = true;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+
+            // 5. Try mapped app
+            if (!worked) {
+                try {
+                    String appAction = getApp(appli);
+                    if (appAction == null)
+                        throw new NullPointerException("App not in the list");
+
+                    ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "Start", appAction);
+                    pb.start();
+                    worked = true;
+                } catch (Exception ignored) {
+                }
+            }
+
+            // 6. Try mapped app via browser
+            if (!worked) {
+                try {
+                    String appAction = getApp(appli);
+                    if (appAction == null)
+                        throw new NullPointerException("App not in the list");
+
+                    if (Desktop.isDesktopSupported()
+                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(new URI(appAction));
+                        worked = true;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+
+            // 7. Try website mapping
+            if (!worked) {
+                try {
+                    String appAction = getApp(appli + " website");
+                    if (appAction == null)
+                        throw new NullPointerException("Website not in the list");
+
+                    if (Desktop.isDesktopSupported()
+                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(new URI(appAction));
+                        worked = true;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+
+            // 8. Try opening as file
+            if (!worked) {
+                try {
+                    Desktop.getDesktop().open(new File(appli));
+                    worked = true;
+                } catch (Exception ignored) {
+                }
+            }
+
+            // 9. Try explorer
+            if (!worked) {
+                try {
+                    if (new File(appli).exists()) {
+                        ProcessBuilder pb = new ProcessBuilder("explorer.exe", appli);
+                        Process p = pb.start();
+                        p.waitFor();
+                        worked = true;
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+
+            // 10. File search fallback
+            if (!worked) {
+                try {
+                    List<Path> searchResult = sending_query.file_search(appli);
+                    if (searchResult == null || searchResult.isEmpty())
+                        throw new Exception("no related file found");
+
+                    if (searchResult.size() == 1) {
+                        Path file = searchResult.get(0);
+                        try {
+                            Desktop.getDesktop().open(file.toFile());
+                            worked = true;
+                        } catch (Exception e) {
+                            ProcessBuilder pb = new ProcessBuilder("explorer.exe", file.toString());
+                            Process p = pb.start();
+                            p.waitFor();
+                            worked = true;
+                        }
+                    } else {
+                        voicemsg("List of related files shown");
+                        error = -1;
+                        worked = true;
+                    }
+                } catch (Exception ignored) {
+                    error = 1;
+                }
+            }
+
+            // Final fallback: Google
+            if (!worked && error == 1) {
+                try {
+                    if (Desktop.isDesktopSupported()
+                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                         Desktop.getDesktop().browse(
                                 new URI("https://www.google.com/search?q="
                                         + appli.replaceAll(" ", "+")));
                     }
-                } catch (Exception EEEE) {
+                } catch (Exception e) {
                     voicemsg("Sorry! can't get info regarding " + appli);
                 }
-            } else if (error == 0) {
+            }
+
+            if (worked && error == 0) {
                 voicemsg("Opening " + appli);
             }
+
+        } catch (Exception e) {
+            voicemsg("Sorry! can't get info regarding " + appli);
         }
     }
 
@@ -196,6 +244,7 @@ public class eFriend {
     // values
     // and its shown even when there even if they are outnumbered
     public static void main(String[] args) {
+        myWhisper = new VoiceToText_Whisper();
         loadApps();
         AccessData.loadData();
         Scanner input = new Scanner(System.in);
@@ -209,7 +258,16 @@ public class eFriend {
         // near 100% chance for all launchable apps
         // need to define like queries asking for "apps" explicitly only use this
         while (_continue) {
-            String app = input.nextLine().strip().toLowerCase();
+            // String app = input.nextLine().strip().toLowerCase();
+            String aq = input.nextLine();
+            String app;
+            if (aq.equals("VOICE_MODE")) {
+                app = myWhisper.GetVoiceInput().strip().toLowerCase().replaceAll("[^a-zA-Z0-9]$", "");
+                System.out.println(app);
+            } else
+                app = aq.strip().toLowerCase().replaceAll("[^a-zA-Z0-9]$", "");
+            ;
+
             String appspace = " " + app + " ";
             String Qword;
             if (app.contains("open ")) {
@@ -249,7 +307,7 @@ public class eFriend {
                         try {
                             InetAddress.getByName(appli);// this method tries to resolve given name into
                         } catch (Exception p) {
-                            nonwebSupport(appli);
+                            desktopSupport(appli);
                             continue;
                         }
                         try {
@@ -263,7 +321,7 @@ public class eFriend {
                         }
                     }
                 } else {
-                    nonwebSupport(appli);
+                    desktopSupport(appli);
                 }
                 // <>
             } else if (appspace.contains(" learn ")
@@ -298,6 +356,9 @@ public class eFriend {
                             } else {
                                 applix = appli.split(" as ", 2);
                             }
+                            for (String a : applix) {
+                                a = a.strip();
+                            }
                             ArrayList<ArrayList<AccessData>> previous = new ArrayList<ArrayList<AccessData>>();
                             // this needs to be a arraylist as Array of ArrayList is not allowed; the size
                             // is
@@ -330,7 +391,7 @@ public class eFriend {
                                     if (accessArr.size() == 1) {
                                         System.out.println(applix[k]
                                                 + " is " + previous.get(k).get(0).data);
-                                        voicemsg("Should I change this info or just add this as new?");
+                                        voicemsg("Should I change or add this as new?");
                                         String reply = " " + input.nextLine().toLowerCase() + " ";
                                         // reply.contains(" yes ") || reply.contains(" ys ")
                                         // || reply.contains(" ya ")
@@ -472,71 +533,104 @@ public class eFriend {
             } else {
                 String appplus = app.replaceAll(" ", "+");
                 Runtime rt = Runtime.getRuntime();
+                boolean worked = false;
+
+                // 1. Direct exec
                 try {
                     rt.exec(app.split(" "));
-                } catch (Exception e) {
+                    worked = true;
+                } catch (Exception ignored) {
+                }
+
+                // 2. Browse as URI
+                if (!worked) {
                     try {
-                        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        if (Desktop.isDesktopSupported()
+                                && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                             Desktop.getDesktop().browse(new URI(app));
+                            worked = true;
                         }
-                    } catch (Exception ew) {
-                        try {
-                            if (app.contains(".") && !app.contains(" ")) {
-                                InetAddress.getByName(app);
-                                if (Desktop.isDesktopSupported()
-                                        && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                                    Desktop.getDesktop().browse(new URI("http://" + app));
-                                }
-                            } else
-                                throw new Exception("Not a webpage");
-                        } catch (Exception ee) {
-                            String appAction = getApp(app);
-                            try {
-                                if (appAction == null)
-                                    throw new NullPointerException("App not in the list");
-                                ProcessBuilder processBuilder = new ProcessBuilder(
-                                        "cmd.exe",
-                                        "/c",
-                                        "Start", appAction);
-                                processBuilder.start();
-                            } catch (Exception ed) {
-                                try {
-                                    if (appAction == null)
-                                        throw new NullPointerException("App not in the list");
-                                    if (Desktop.isDesktopSupported() && Desktop.getDesktop()
-                                            .isSupported(Desktop.Action.BROWSE)) {
-                                        Desktop.getDesktop()
-                                                .browse(new URI(appAction));
-                                    }
-                                } catch (Exception eeE) {
-                                    try {
-                                        appAction = getApp(app + " website");
-                                        if (appAction == null)
-                                            throw new NullPointerException("Website not in the list");
-                                        if (Desktop.isDesktopSupported() && Desktop
-                                                .getDesktop()
-                                                .isSupported(Desktop.Action.BROWSE)) {
-                                            Desktop.getDesktop()
-                                                    .browse(new URI(appAction));
-                                        }
-                                    } catch (Exception eq) {
-                                        try {
-                                            if (Desktop.isDesktopSupported() && Desktop.getDesktop()
-                                                    .isSupported(Desktop.Action.BROWSE)) {
-                                                Desktop.getDesktop().browse(
-                                                        new URI("https://www.google.com/search?q="
-                                                                + appplus));
-                                            }
-                                        } catch (Exception EEEE) {
-                                            voicemsg("Sorry! can't get info regarding " + app);
-                                        }
-                                    }
-                                }
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                // 3. Check if it looks like a domain and browse http://
+                if (!worked) {
+                    try {
+                        if (app.contains(".") && !app.contains(" ")) {
+                            InetAddress.getByName(app);
+                            if (Desktop.isDesktopSupported()
+                                    && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                                Desktop.getDesktop().browse(new URI("http://" + app));
+                                worked = true;
                             }
                         }
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                // 4. Try mapped app (cmd Start)
+                if (!worked) {
+                    try {
+                        String appAction = getApp(app);
+                        if (appAction == null)
+                            throw new NullPointerException("App not in the list");
+
+                        ProcessBuilder processBuilder = new ProcessBuilder(
+                                "cmd.exe", "/c", "Start", appAction);
+                        processBuilder.start();
+                        worked = true;
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                // 5. Try mapped app via browser
+                if (!worked) {
+                    try {
+                        String appAction = getApp(app);
+                        if (appAction == null)
+                            throw new NullPointerException("App not in the list");
+
+                        if (Desktop.isDesktopSupported()
+                                && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                            Desktop.getDesktop().browse(new URI(appAction));
+                            worked = true;
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                // 6. Try mapped website
+                if (!worked) {
+                    try {
+                        String appAction = getApp(app + " website");
+                        if (appAction == null)
+                            throw new NullPointerException("Website not in the list");
+
+                        if (Desktop.isDesktopSupported()
+                                && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                            Desktop.getDesktop().browse(new URI(appAction));
+                            worked = true;
+                        }
+                    } catch (Exception ignored) {
+                    }
+                }
+
+                // 7. Google fallback
+                if (!worked) {
+                    try {
+                        if (Desktop.isDesktopSupported()
+                                && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                            Desktop.getDesktop().browse(
+                                    new URI("https://www.google.com/search?q=" + appplus));
+                            worked = true;
+                        }
+                    } catch (Exception e) {
+                        voicemsg("Sorry! can't get info regarding " + app);
                     }
                 }
             }
+
         }
         input.close();
     }
