@@ -144,7 +144,7 @@ public class VoiceToText_Whisper {
             fullText.append(text);
         }
 
-        return fullText.toString().replaceAll("\\[[^\\]]*\\]", "").replaceAll("\\s+", " ").strip();
+        return fullText.toString().replaceAll("\\s+", " ").strip();
 
     }
 

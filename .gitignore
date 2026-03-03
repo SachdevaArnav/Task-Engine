@@ -11,3 +11,8 @@ Resources
 target
 output_converted.wav
 .vscode
+PyEnv
+Reminder.txt
+architecturalPositioning.txt
+__pycache__
+testingPywinauto.py

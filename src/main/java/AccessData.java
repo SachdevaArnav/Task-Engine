@@ -3,7 +3,6 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 public class AccessData {
     String data;
@@ -14,7 +13,7 @@ public class AccessData {
         this.data = data;
     }
 
-    static LinkedList<String[]> DataTable = new LinkedList<>();
+    static ArrayList<String[]> DataTable = new ArrayList<String[]>();
 
     static void loadData() {
         try (BufferedReader myReader = new BufferedReader(
