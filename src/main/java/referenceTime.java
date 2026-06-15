@@ -26,17 +26,17 @@ public class referenceTime {
         search2.what a;
         Matcher match;
 
-        if ((a = search2.DL_light(query.toLowerCase(), "today")).match) {
+        if ((a = search2.DL_light(query.toLowerCase(), "today", search2.Mode.FAST)).match) {
             query = query.replaceAll(a.replacement, refDate.toString());
         } else if ((match = tdy.matcher(query)).find(0)) {
             query = query.replaceAll(match.group(), refDate.toString());
         }
-        if ((a = search2.DL_light(query.toLowerCase(), "yesterday")).match) {
+        if ((a = search2.DL_light(query.toLowerCase(), "yesterday", search2.Mode.FAST)).match) {
             query = query.replaceAll(a.replacement, refDate.minusDays(1).toString());
         } else if ((match = yday.matcher(query)).find(0)) {
             query = query.replaceAll(match.group(), refDate.minusDays(1).toString());
         }
-        if ((a = search2.DL_light(query.toLowerCase(), "tomorrow")).match) {
+        if ((a = search2.DL_light(query.toLowerCase(), "tomorrow", search2.Mode.FAST)).match) {
             query = query.replaceAll(a.replacement, refDate.plusDays(1).toString());
         } else if (((match = tmrw.matcher(query)).find(0)) || ((match = _2mrw.matcher(query)).find(0))) {
             query = query.replaceAll(match.group(), refDate.plusDays(1).toString());

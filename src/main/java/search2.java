@@ -250,7 +250,7 @@ public class search2 extends SimpleFileVisitor<Path> {
                         if (!genericNames.contains(token)) {
                             AtleastOneExact = true;
                         }
-                    } else if ((result = DL_light(quickName.toLowerCase(), token.toLowerCase())).match) {
+                    } else if ((result = DL_light(quickName.toLowerCase(), token.toLowerCase(), Mode.FAST)).match) {
                         score += 55;
                         quickName = " " + quickName.replaceFirst("(?i)" + result.replacement, "") + " ";
                     } else if (preName.matches("(?i).*\\b" + token + "\\b.*")) {
@@ -261,7 +261,7 @@ public class search2 extends SimpleFileVisitor<Path> {
                         score += 45;
                         preName = " " + preName.replaceFirst("(?i)" + Pattern.quote(token), "") + " ";
 
-                    } else if ((result = DL_light(preName.toLowerCase(), token.toLowerCase())).match) {
+                    } else if ((result = DL_light(preName.toLowerCase(), token.toLowerCase(), Mode.FAST)).match) {
                         score += 45;
                         preName = " " + preName.replaceFirst("(?i)" + result.replacement, "") + " ";
                     } else {
@@ -350,10 +350,16 @@ public class search2 extends SimpleFileVisitor<Path> {
         return TimeArray;
     }
 
-    public static search2.what DL_light(String quickname, String b) {
-        b = b.replaceAll("[^A-Za-z]", "");
+    // this function was designed considering b as single word only (not phrases)
+    public static search2.what DL_light(String quickname, String b, Mode mode) {
+        // Use FAST mode when the accuracy of scoring is useless for you the moment
+        // boolean match turns false
+        // else use ACCURATE_SCORING mode
+        b = b.replaceAll("[^A-Za-z]", "").toLowerCase();
+        quickname = quickname.toLowerCase();
         boolean match = false;
         String[] quickarr;
+        float Max_Score = Float.NEGATIVE_INFINITY;
         if (!b.equals("")) {
             if (Math.abs(quickname.length() - b.length()) <= 2) {
                 quickarr = new String[] { quickname.strip().replaceAll("[^A-Za-z]", "") };
@@ -363,6 +369,7 @@ public class search2 extends SimpleFileVisitor<Path> {
             for (String a : quickarr) {
                 int i = 0, j = 0, edits = 0;
                 int threshold;
+                int maxLen = Math.max(a.length(), b.length());
                 if (!a.equals("")) {
                     int diff = Math.abs(b.length() - a.length());
                     if (diff > 2) {
@@ -388,7 +395,7 @@ public class search2 extends SimpleFileVisitor<Path> {
                                     j++;
                                 } else {
                                     edits++;
-                                    if (edits > threshold) {
+                                    if (mode == Mode.FAST && edits > threshold) {
                                         break;
                                     }
                                     // checking for transposition only adjacent swaps
@@ -412,14 +419,19 @@ public class search2 extends SimpleFileVisitor<Path> {
                             }
                             match = edits <= threshold;
                             if (match) {
-                                return new search2.what(match, a);
+                                return new search2.what(match, a,
+                                        (1 - (float) edits / maxLen));
                             }
                         }
                     }
                 }
+                float score = ((1 - (float) edits / maxLen));
+                if (Max_Score < score) {
+                    Max_Score = score;
+                }
             }
         }
-        return new search2.what(match, null);
+        return new search2.what(match, null, Max_Score);
     }
 
     public static class what {
@@ -427,10 +439,18 @@ public class search2 extends SimpleFileVisitor<Path> {
         public boolean match;
         public String replacement;
 
-        public what(boolean match, String replacement) {
+        public float score;
+
+        public what(boolean match, String replacement, float score) {
             this.match = match;
             this.replacement = replacement;
+            this.score = score;
         }
+    }
+
+    enum Mode {
+        FAST,
+        ACCURATE_SCORING
     }
 
     public static LocalDateTime truncate(LocalDateTime dt, ChronoUnit unit) {

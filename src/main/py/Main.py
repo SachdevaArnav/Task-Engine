@@ -1,11 +1,22 @@
 from WindowControls import focusWindow, listWindows
-import pythoncom,sys,json,traceback,struct
+from MouseControls import click, doubleClick, moveMouse, scroll
+from Perception import WinRTocr
+import pythoncom,sys,json,traceback,struct,sys,ctypes
+
+print("some debug", file=sys.stderr, flush=True)#helpful for debugging
 # This COINIT_MULTITHREADED we are doing for robustness from OS and libraray evolution
 # Only thing need to be taken care is to CoUnintialize at SHUTDOWN
 ATOM_REGISTRY={
 "FOCUS_WINDOW":focusWindow.run,
-"LIST_WINDOWS":listWindows.run
+"LIST_WINDOWS":listWindows.run,
+"CLICK":click.run,
+"DOUBLE_CLICK":doubleClick.run,
+"MOVE_MOUSE":moveMouse.run,
+"SCROLL":scroll.run,
+"OCR_TO_COORDINATE":WinRTocr.run
+
 }
+ctypes.windll.user32.SetProcessDPIAware()
 def command_input():
     raw_len=sys.stdin.buffer.read(4) #read
     if not raw_len:
