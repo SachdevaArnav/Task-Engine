@@ -59,6 +59,11 @@ public class search2 extends SimpleFileVisitor<Path> {
             // Email
             Set.of("eml", "msg", "email"));
 
+    private static final Set<String> HARD_SKIP_EXTENSIONS = Set.of("dll", "sys", "drv", "mui", "cat", "tmp", "etl",
+            "lock");
+    private static final Set<String> LOW_VALUE_EXTENSIONS = Set.of(
+            "dat", "idx", "bak", "old", "log", "dmp", "mdmp");
+
     public static final Set<String> genericNames = new HashSet<>();
     static {
         for (Set<String> s : extensionGroups) {
@@ -85,6 +90,16 @@ public class search2 extends SimpleFileVisitor<Path> {
             "__pycache__", "$RECYCLE.BIN", "platforms", "res", "layout", "build-tools", "ndk", "emulator",
             "gen", "obj", "plugins", "tzdata"
     };
+    String[] penalizeFolders = {
+            "lib",
+            "libs",
+            "share",
+            "include",
+            "vendor",
+            "deps",
+            "packages",
+            "modules",
+            "site-packages", "etc" };
 
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attr) {
@@ -171,7 +186,7 @@ public class search2 extends SimpleFileVisitor<Path> {
         if (Files.isRegularFile(file)) {
             if (name.contains(".")) {
                 String[] nameq = name.split("\\.(?=[^\\.]*$)");
-                quickName = nameq[0].replaceAll("\\.", " ");
+                quickName = nameq[0].replaceAll("\\.", " ") + " ";
                 ext = nameq[1].replaceAll(" ", "");
                 extMatched = false;
             } else {
@@ -179,6 +194,12 @@ public class search2 extends SimpleFileVisitor<Path> {
             }
         } else {
             quickName = name.replaceAll("\\.", " ");
+        }
+        if (HARD_SKIP_EXTENSIONS.contains(ext)) {
+            return 0;
+        }
+        if (LOW_VALUE_EXTENSIONS.contains(ext)) {
+            score -= 50;
         }
         boolean MultiWord = false;
         String bareString = quickName.strip();
@@ -191,11 +212,20 @@ public class search2 extends SimpleFileVisitor<Path> {
             }
         }
         String preName = " " + file.getParent().toString().replaceAll("[^a-zA-Z0-9 ]", " ") + " ";
+        boolean intiallySmall = false;
+        if (preName.replaceAll(" ", "").length() <= 2) {
+            intiallySmall = true;
+        }
+        for (String p : penalizeFolders) {
+            if (preName.contains(" " + p + " ")) {
+                score -= 50;
+            }
+        }
         String[] Tokens1 = query.replaceAll("[^a-zA-Z0-9 ]", " ").split(" ");
         Arrays.sort(Tokens1, Comparator.comparing(s -> s.length()));
         String[] Tokens = new String[Tokens1.length];
         for (int i = 0; i < Tokens1.length; i++) {
-            Tokens[i] = Tokens1[Tokens1.length - 1 - i];
+            Tokens[i] = " " + Tokens1[Tokens1.length - 1 - i] + " ";
         }
         Tokens1 = null;
         boolean safeExtUsed = extMatched;
@@ -230,7 +260,7 @@ public class search2 extends SimpleFileVisitor<Path> {
                 String quickNameClean = quickName.replaceAll("[0-9 ]", "");
                 String tokenClean = token.replaceAll("[0-9 ]", "");
                 search2.what result = null;
-                if (quickName.replaceAll(" ", "").length() > 2) {
+                if (!quickName.replaceAll(" ", "").isEmpty()) {
                     if (quickName.matches("(?i).*\\b" + token + "\\b.*")) {
                         score += 70;
                         quickName = " " + quickName.replaceFirst("(?i)\\b" + Pattern.quote(token) + "\\b", "")
@@ -238,7 +268,7 @@ public class search2 extends SimpleFileVisitor<Path> {
                         if (!genericNames.contains(token)) {
                             AtleastOneExact = true;
                         }
-                    } else if (quickNameClean.length() > 2 && tokenClean.length() > 2
+                    } else if (!quickNameClean.isEmpty() && !tokenClean.isEmpty()
                             && quickNameClean.equalsIgnoreCase(tokenClean)) {
                         score += 70;
                         if (!genericNames.contains(token)) {
@@ -267,15 +297,16 @@ public class search2 extends SimpleFileVisitor<Path> {
                     } else {
                         score -= 20;// penalty for useless tokens
                     }
-                    if (preName.replaceAll(" ", "").length() <= 2) {
-                        score += 200;
-                    }
-                } else if ((MultiWord || extMatched)) {
-                    score += 100;
                 } else {
                     score -= 20;// penalty for useless tokens
                 }
             }
+        }
+        if (!intiallySmall && preName.replaceAll(" ", "").length() <= 2) {
+            score += 200;
+        }
+        if ((MultiWord || extMatched)) {
+            score += 100;
         }
         if (AtleastOneExact) {
             if (score > 0 && !safeExtUsed)

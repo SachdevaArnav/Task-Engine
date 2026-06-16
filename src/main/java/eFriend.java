@@ -8,7 +8,6 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -73,7 +72,7 @@ public class eFriend {
         return AppList.get(app);
     }
 
-    private static void desktopSupport(String appli) {
+    private static void desktopSupport(Scanner input, String appli) {
         byte error = 0;
         boolean worked = false;
         Runtime rt = Runtime.getRuntime();
@@ -190,24 +189,16 @@ public class eFriend {
             // 10. File search fallback
             if (!worked) {
                 try {
-                    List<Path> searchResult = sending_query.file_search(appli);
-                    if (searchResult == null || searchResult.isEmpty())
+                    Path file = sending_query.file_search(input, appli);
+                    if (file == null)
                         throw new Exception("no related file found");
-
-                    if (searchResult.size() == 1) {
-                        Path file = searchResult.get(0);
-                        try {
-                            Desktop.getDesktop().open(file.toFile());
-                            worked = true;
-                        } catch (Exception e) {
-                            ProcessBuilder pb = new ProcessBuilder("explorer.exe", file.toString());
-                            Process p = pb.start();
-                            p.waitFor();
-                            worked = true;
-                        }
-                    } else {
-                        voicemsg("List of related files shown");
-                        error = -1;
+                    try {
+                        Desktop.getDesktop().open(file.toFile());
+                        worked = true;
+                    } catch (Exception e) {
+                        ProcessBuilder pb = new ProcessBuilder("explorer.exe", file.toString());
+                        Process p = pb.start();
+                        p.waitFor();
                         worked = true;
                     }
                 } catch (Exception ignored) {
@@ -237,6 +228,66 @@ public class eFriend {
             voicemsg("Sorry! can't get info regarding " + appli);
         }
     }
+
+    public static void openTarget(Scanner input, String appli) {
+        appli = appli.strip();
+        if (appli.contains("www.") && !(appli.contains("http"))) {
+            try {
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                    Desktop.getDesktop().browse(new URI("http://" + appli));
+                }
+            } catch (Exception ee) {
+                voicemsg("Sorry!Can't reach this webpage.");
+                voicemsg("Please check the URL");
+            }
+        } else if (appli.contains(".") && !(appli.contains(" "))) {
+            if ((appli.contains("http"))) {
+                String web;
+                if (!appli.contains("://")) {
+                    if (appli.contains("https")) {
+                        web = "https://" + appli.split("https")[1].strip();
+                    } else {
+                        web = "http://" + appli.split("http")[1].strip();
+                    }
+                } else {
+                    web = appli;
+                }
+                try {
+                    if (Desktop.isDesktopSupported()
+                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(new URI(web));
+                    }
+                } catch (Exception ee) {
+                    voicemsg("Sorry!Can't reach this webpage.");
+                    voicemsg("Please check the URL");
+                }
+            } else {
+                try {
+                    InetAddress.getByName(appli);// this method tries to resolve given name into
+                } catch (Exception p) {
+                    desktopSupport(input, appli);
+                    return;
+                }
+                try {
+                    if (Desktop.isDesktopSupported()
+                            && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                        Desktop.getDesktop().browse(new URI("http://" + appli));
+                    }
+                } catch (Exception ee) {
+                    voicemsg("Sorry!Can't reach this webpage.");
+                    voicemsg("Please check the URL");
+                }
+            }
+        } else {
+            desktopSupport(input, appli);
+        }
+    }
+
+    // public static Path selectFile(String input) {
+    // sending_query.file_search(input);
+
+    // return;
+    // }
 
     // there are some cases where its misfiring like 'open allen act papers'
     // this is somehow instead opens ssc X papers pdf
@@ -273,57 +324,7 @@ public class eFriend {
             if (app.contains("open ")) {
                 String[] arrOfStr = app.split("open ", 2);
                 String appli = arrOfStr[1].strip();
-                if (appli.contains("www.") && !(appli.contains("http"))) {
-                    try {
-                        if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                            Desktop.getDesktop().browse(new URI("http://" + appli));
-                        }
-                    } catch (Exception ee) {
-                        voicemsg("Sorry!Can't reach this webpage.");
-                        voicemsg("Please check the URL");
-                    }
-                } else if (appli.contains(".") && !(appli.contains(" "))) {
-                    if ((appli.contains("http"))) {
-                        String web;
-                        if (!appli.contains("://")) {
-                            if (appli.contains("https")) {
-                                web = "https://" + appli.split("https")[1].strip();
-                            } else {
-                                web = "http://" + appli.split("http")[1].strip();
-                            }
-                        } else {
-                            web = appli;
-                        }
-                        try {
-                            if (Desktop.isDesktopSupported()
-                                    && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                                Desktop.getDesktop().browse(new URI(web));
-                            }
-                        } catch (Exception ee) {
-                            voicemsg("Sorry!Can't reach this webpage.");
-                            voicemsg("Please check the URL");
-                        }
-                    } else {
-                        try {
-                            InetAddress.getByName(appli);// this method tries to resolve given name into
-                        } catch (Exception p) {
-                            desktopSupport(appli);
-                            continue;
-                        }
-                        try {
-                            if (Desktop.isDesktopSupported()
-                                    && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
-                                Desktop.getDesktop().browse(new URI("http://" + appli));
-                            }
-                        } catch (Exception ee) {
-                            voicemsg("Sorry!Can't reach this webpage.");
-                            voicemsg("Please check the URL");
-                        }
-                    }
-                } else {
-                    desktopSupport(appli);
-                }
-                // <>
+                openTarget(input, appli);
             } else if (appspace.contains(" learn ")
                     || appspace.contains(" remember ")) {
                 String[] arrOfStr;
