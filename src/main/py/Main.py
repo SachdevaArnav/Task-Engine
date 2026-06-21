@@ -1,6 +1,7 @@
 from WindowControls import focusWindow, listWindows
 from MouseControls import click, doubleClick, moveMouse, scroll
 from Perception import WinRTocr
+from UiTreeControls import inspectWindow,activateControl
 import pythoncom,sys,json,traceback,struct,sys,ctypes
 
 print("some debug", file=sys.stderr, flush=True)#helpful for debugging
@@ -13,8 +14,9 @@ ATOM_REGISTRY={
 "DOUBLE_CLICK":doubleClick.run,
 "MOVE_MOUSE":moveMouse.run,
 "SCROLL":scroll.run,
-"OCR_TO_COORDINATE":WinRTocr.run
-
+"OCR_TO_COORDINATE":WinRTocr.run,
+"INSPECT_WINDOW":inspectWindow.run,
+"ACTIVATE_CONTROL":activateControl.run
 }
 ctypes.windll.user32.SetProcessDPIAware()
 def command_input():

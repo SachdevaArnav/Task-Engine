@@ -27,22 +27,26 @@ public class EngineIPC {
     }
 
     // Receiving response
-    public JsonNode recv() throws Exception {
+    private JsonNode recv() throws Exception {
         int length = in.readInt();
+        // Catch corrupted or giant length inputs immediately
+        if (length <= 0 || length > 10_000_000) {
+            throw new Exception("Stream corruption detected! Invalid packet length: " + length);
+        }
         byte[] buf = new byte[length];
         in.readFully(buf);
         return mapper.readTree(buf);
     }
 
     // Send command
-    public void send(Object obj) throws Exception {
+    private void send(Object obj) throws Exception {
         byte[] data = mapper.writeValueAsBytes(obj);
         out.writeInt(data.length);
         out.write(data);
         out.flush();
     }
 
-    public void sendAtom(String atom, JsonNode _args) throws Exception {
+    private void sendAtom(String atom, JsonNode _args) throws Exception {
         ObjectNode cmd = mapper.createObjectNode();
         // ipc.send(text);
         cmd.put("cmd", "EXECUTE");
@@ -163,7 +167,7 @@ public class EngineIPC {
         return output;
     }
 
-    public List<JsonNode> OCRhandler() throws Exception {
+    private List<JsonNode> OCRhandler() throws Exception {
         try {
             ObjectNode _args = mapper.createObjectNode();
             sendAtom("OCR_TO_COORDINATE", _args);
@@ -370,6 +374,180 @@ public class EngineIPC {
         }
     }
 
+    private JsonNode findControl(int handle, String query) throws Exception {
+        query = query.replaceAll("[^A-Za-z0-9\\s]", "").strip();
+        String[] queryArr = query.strip().split("\\s+");
+        // bring all the strings and compare with all and take the max or with some
+        // weighted for all the 4 5 strings for each element
+        // and repeat this for all actionable element
+        try {
+            ObjectNode _args = mapper.createObjectNode();
+            _args.put("handle", handle);
+            sendAtom("INSPECT_WINDOW", _args);
+            JsonNode report = recv();
+            if (report.get("status").asText().equalsIgnoreCase("error")) {
+                throw new Exception(report.get("traceback").asText());
+            } else if (report.get("status").asText().equalsIgnoreCase("ok")) {
+                ArrayNode list = (ArrayNode) report.get("list");
+                float score = 0, max = 0, bestScore = 0;
+                int total = 0, coverage = 0;
+                boolean selectThis;
+                JsonNode bestMatch = list.get(0);
+                for (JsonNode node : list) {
+                    selectThis = false;
+                    for (String b : new String[] { "name", "parentName", "class_name", "automation_id",
+                            "control_type" }) {
+                        b = node.get(b).asText();
+                        if (b == null || (b = b.strip()) == "")
+                            continue;
+                        score = 0;
+                        total = 0;
+                        coverage = 0;
+                        for (String a : queryArr) {
+                            total += a.length();
+                            if (!search2.DL_light(b, a, search2.Mode.FAST).match)
+                                continue;
+                            score += search2.DL_light(b, a, search2.Mode.FAST).score * a.length();
+                            coverage += a.length();
+                        }
+                        coverage /= total;
+                        selectThis = selectThis | (coverage >= 0.5);
+                        score /= total;
+                        max = Math.max(score, max);
+                    }
+                    if (selectThis && max > bestScore) {
+                        bestScore = max;
+                        bestMatch = node;
+                    }
+                }
+                // send bestMatch
+                if (bestScore == 0)
+                    throw new Exception("Failed to find the desired Actionable element");
+                return (bestMatch);
+            }
+        } catch (Exception e) {
+            throw e;
+        }
+        throw new Exception("Failed in control query handling");
+    }
+
+    public void activateControl(int handle, String query) throws Exception {
+        try {
+            JsonNode target = findControl(handle, query);
+            // System.out.println(target);
+            ObjectNode _args = mapper.createObjectNode();
+            _args.set("target", target);
+            _args.put("handle", handle);
+            sendAtom("ACTIVATE_CONTROL", _args);
+            JsonNode report = recv();
+            // System.out.println(report);
+            if (report.get("status").asText().equalsIgnoreCase("error")) {
+                throw new Exception(report.get("error").asText());
+            }
+        } catch (Exception e) {
+            // single click the query matching control
+            // and before that bring the window forward
+            try {
+                ObjectNode _args = mapper.createObjectNode();
+                _args.put("handle", handle);
+                sendAtom("FOCUS_WINDOW", _args);
+                JsonNode report = recv();
+                if (report.get("status").asText().equalsIgnoreCase("error")) {
+                    throw new Exception(report.get("error").asText());
+                }
+                click(query, ClickType.SINGLE_CLICK, ClickSide.LEFT);
+            } catch (Exception ee) {
+                throw new Exception("Failed to activate Control " + query + " : " + ee);
+            }
+        }
+    }
+
+    public boolean controlExists(int handle, String query) {
+        try {
+            findControl(handle, query);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean TextExists(int handle, String query) {
+        try {
+            query = query.replaceAll("[^A-Za-z0-9. ]", "").strip().toLowerCase();
+            if (query == "") {
+                throw new Exception("seemingly empty query");
+            }
+            String[] queryArr = query.split(" ");
+            ObjectNode _args = mapper.createObjectNode();
+            _args.put("handle", handle);
+            sendAtom("FOCUS_WINDOW", _args);
+            JsonNode report = recv();
+            if (report.get("status").asText().equalsIgnoreCase("error"))
+                throw new Exception(report.get("error").asText());
+            List<JsonNode> visibleTextNodes = OCRhandler();
+            for (JsonNode textNode : visibleTextNodes) {
+                float coverage = 0;
+                int total = 0;
+                for (String q : queryArr) {
+                    if (search2.DL_light(textNode.get("text").asText().toLowerCase(), q,
+                            search2.Mode.FAST).match) {
+                        coverage += q.length();
+                    }
+                    total += q.length();
+                }
+                coverage /= total;
+                if (coverage >= 0.5)
+                    return true;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public int getHandle(String windowQuery) throws Exception {
+        windowQuery = windowQuery.replaceAll("[^A-Za-z0-9 ]", "").strip().toLowerCase();
+        if (windowQuery == "") {
+            throw new Exception("seemingly empty query");
+        }
+        String[] queryArr = windowQuery.split(" ");
+        ObjectNode _args = mapper.createObjectNode();
+        sendAtom("LIST_WINDOWS", _args);
+        JsonNode report = recv();
+        if (report.get("status").asText().equalsIgnoreCase("error")) {
+            throw new Exception(report.get("error").asText());
+        }
+        ArrayNode list = (ArrayNode) report.get("windows");
+        float bestScore = 0;
+        JsonNode bestMatch = list.get(0);
+        for (JsonNode node : list) {
+            float coverage1 = 0, coverage2 = 0, score = 0;
+            int total = 0;
+            String text;
+            for (String q : queryArr) {
+                if (search2.DL_light((node.get("WindowTitle").asText().toLowerCase()), q,
+                        search2.Mode.FAST).match) {
+                    coverage1 += q.length();
+                }
+                if (search2.DL_light(node.get("process").asText().toLowerCase(), q, search2.Mode.FAST).match) {
+                    coverage2 += q.length();
+                }
+                total += q.length();
+            }
+            coverage1 /= total;
+            coverage2 /= total;
+            score = Math.max(coverage1, coverage2);
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = node;
+            }
+        }
+        if (bestScore == 0) {
+            throw new Exception("Cannot find the needed window");
+        }
+        return bestMatch.get("hwnd").asInt();
+    }
+
     // testing
     public static void main(String[] args) throws Exception {
         // send CLI start to Main.py---
@@ -399,12 +577,17 @@ public class EngineIPC {
         t.start();
         try {
             System.out.println("is python alive" + py.isAlive());
+            // System.out.println("I want to listen");
             report = ipc.recv(); // waits until python response
+            // System.out.println("hey r u listening?????");
         } catch (Exception e) {
             System.out.println("is python alive" + py.isAlive());
             report = new TextNode("");
+            // System.out.println("bye");
         }
+        // System.out.println("hey");
         System.out.println(report.asText());
+        // System.out.println("hey");
         // --------------This one is oto list windows and bring froward the one
         // needed-------------------
         // if (report.path("status").asText().equals("Ready")) {
@@ -497,9 +680,10 @@ public class EngineIPC {
         // }
         // }
         // ----------------------------------------------------------------
-        Thread.sleep(5000);
+        // Thread.sleep(5000);
         try {
-            ipc.click("Visual Studio Code", ClickType.SINGLE_CLICK, ClickSide.RIGHT);
+            System.out.println(ipc.getHandle("yoututbe music"));
+            // System.out.println(ipc.findControl(657120, "file"));
         } catch (Exception e) {
             System.out.println(e);
         }

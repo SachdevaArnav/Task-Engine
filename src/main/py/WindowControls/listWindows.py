@@ -53,3 +53,5 @@ def run():
 # IMPORTANT FOR THE ENGINE many process have multiple hwnd even after we select visible_only=True
 # in these always consider those processes first which have Window Title
 # We dont filter them out just give a lower score
+if __name__=="__main__":
+    print(run())

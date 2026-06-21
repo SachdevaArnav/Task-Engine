@@ -34,3 +34,5 @@ def run(handle):
         "status":"error",
         "error":f"Failed to transfer focus to the app with hwnd {handle}"
         }
+if __name__=="__main__":
+    run(66904)
