@@ -382,6 +382,15 @@ public class search2 extends SimpleFileVisitor<Path> {
     }
 
     // this function was designed considering b as single word only (not phrases)
+    // ----------------ATTENTION----------------
+    // the first version of this function intentionally didnt used .toLowerCase
+    // becuase we are using the .replacement attribute at places
+    // but later on in one change tolowercase was added so we either need to modify
+    // this function to curate both .tolowercase based comaprison and actual phrase
+    // passing when passing replacement or fix all usage to a single version
+    // Due to time constraints, this particular modification is avoided in this
+    // version but will be corrected AS SOON AS POSSIBLE.
+
     public static search2.what DL_light(String quickname, String b, Mode mode) {
         // Use FAST mode when the accuracy of scoring is useless for you the moment
         // boolean match turns false

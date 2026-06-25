@@ -1,7 +1,5 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -13,17 +11,71 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 
-public class EngineIPC {
+public class EngineIPC implements AutoCloseable {
     private final DataInputStream in;
     private final DataOutputStream out;
     private final ObjectMapper mapper;
+    private final Process py;
 
-    public EngineIPC(InputStream instream, OutputStream outstream) {
-        in = new DataInputStream(instream);
-        out = new DataOutputStream(outstream);
+    public EngineIPC() throws Exception {
         mapper = new ObjectMapper();
+        ProcessBuilder pb = new ProcessBuilder(Paths.get("PyEnv", "Scripts", "python.exe").toAbsolutePath().toString(),
+                "-u",
+                "src/main/py/Main.py");
+        // pb.redirectErrorStream(true);
+        py = pb.start();
+        in = new DataInputStream(py.getInputStream());
+        out = new DataOutputStream(py.getOutputStream());
+        // System.out.println("is python alive" + py.isAlive());
+        JsonNode report;
+        Thread t = new Thread(() -> {
+            try (var r = new java.io.BufferedReader(
+                    new java.io.InputStreamReader(py.getErrorStream()))) {
+                String line;
+                while ((line = r.readLine()) != null) {
+                    System.out.println("[PY-ERR] " + line);
+                }
+            } catch (Exception ignored) {
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+        report = recv();
+    }
+
+    @Override
+    public void close() throws Exception {
+        try {
+            if (py != null && py.isAlive()) {
+                ObjectNode cmd = this.mapper.createObjectNode();
+                cmd.put("cmd", "SHUTDOWN");
+                this.send(cmd);
+                py.waitFor(2, java.util.concurrent.TimeUnit.SECONDS);
+            }
+        } finally {
+            // 1. Flush and close the output stream to release resources
+            if (out != null) {
+                try {
+                    out.close();
+                } catch (Exception e) {
+                }
+            }
+
+            // 2. Close the input stream (Python's stdout)
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (Exception e) {
+                    // Log or ignore
+                }
+            }
+
+            // 3. Last line of defense: Force kill the process if it's still running
+            if (py != null && py.isAlive()) {
+                py.destroyForcibly();
+            }
+        }
     }
 
     // Receiving response
@@ -298,7 +350,7 @@ public class EngineIPC {
                         }
                     }
                 }
-                System.out.println(a + ":" + wordMetrices.score);
+                // System.out.println(a + ":" + wordMetrices.score);
                 if (!wordMetrices.match)
                     continue;
                 avgScore += wordMetrices.score;
@@ -314,12 +366,12 @@ public class EngineIPC {
             search2.what concScore = search2.DL_light(text, raw, search2.Mode.FAST);
             avgScore = Math.max(avgScore, concScore.score);
             metrices_match = metrices_match || concScore.match;
-            System.out.println("hello");
+            // System.out.println("hello");
             if (!metrices_match) {
                 continue;
             }
             score = avgScore;
-            System.out.println(raw + ":" + score);
+            // System.out.println(raw + ":" + score);
             // this the final score considers fuzziness of DL_light algo
             ((ObjectNode) node).put("score", score);
             if (bestScore < score) {
@@ -349,10 +401,10 @@ public class EngineIPC {
         JsonNode report = mapper.createObjectNode();
         ((ObjectNode) report).put("x", bestMatch.get("x").asInt() + bestMatch.get("w").asInt() / 2);
         ((ObjectNode) report).put("y", bestMatch.get("y").asInt() + bestMatch.get("h").asInt() / 2);
-        System.out.println("text:" + bestMatch.get("text").asText());
+        // System.out.println("text:" + bestMatch.get("text").asText());
         sendAtom("MOVE_MOUSE", report);
-        System.out.println("X: " + report.get("x").asInt());
-        System.out.println("Y: " + report.get("y").asInt());
+        // System.out.println("X: " + report.get("x").asInt());
+        // System.out.println("Y: " + report.get("y").asInt());
         report = recv();
         if (report.get("status").asText().equalsIgnoreCase("error")) {
             throw new Exception(report.get("error").asText());
@@ -367,7 +419,7 @@ public class EngineIPC {
             if (report.get("status").asText().equalsIgnoreCase("error")) {
                 throw new Exception(report.get("error").asText());
             } else if (report.get("status").asText().equalsIgnoreCase("ok")) {
-                System.out.println("Click executed successfully");
+                // System.out.println("Click executed successfully");
             }
         } else {
             throw new Exception("Invalid Json Format from Python");
@@ -375,8 +427,7 @@ public class EngineIPC {
     }
 
     private JsonNode findControl(int handle, String query) throws Exception {
-        query = query.replaceAll("[^A-Za-z0-9\\s]", "").strip();
-        String[] queryArr = query.strip().split("\\s+");
+        query = query.replaceAll("[^A-Za-z0-9\\s]", "").strip().toLowerCase();
         // bring all the strings and compare with all and take the max or with some
         // weighted for all the 4 5 strings for each element
         // and repeat this for all actionable element
@@ -389,15 +440,36 @@ public class EngineIPC {
                 throw new Exception(report.get("traceback").asText());
             } else if (report.get("status").asText().equalsIgnoreCase("ok")) {
                 ArrayNode list = (ArrayNode) report.get("list");
-                float score = 0, max = 0, bestScore = 0;
-                int total = 0, coverage = 0;
+                float score = 0, max = 0, bestScore = 0, coverage = 0;
+                int total = 0;
                 boolean selectThis;
+                search2.what temp;
                 JsonNode bestMatch = list.get(0);
+                String requestedType = null;
+                final String[] actonable_types = { "button",
+                        "menuitem",
+                        "edit",
+                        "checkbox",
+                        "radiobutton",
+                        "combobox",
+                        "tabitem",
+                        "treeitem",
+                        "listitem",
+                        "hyperlink" };
+                for (String t : actonable_types) {
+                    if ((temp = search2.DL_light(query, t, search2.Mode.FAST)).match) {
+                        query = query.replace(temp.replacement, "");
+                        requestedType = t;
+                        break;
+                    }
+                }
+                String[] queryArr = query.strip().split("\\s+");
+                String b;
                 for (JsonNode node : list) {
                     selectThis = false;
-                    for (String b : new String[] { "name", "parentName", "class_name", "automation_id",
+                    for (String x : new String[] { "name", "parentName", "class_name", "automation_id",
                             "control_type" }) {
-                        b = node.get(b).asText();
+                        b = node.get(x).asText();
                         if (b == null || (b = b.strip()) == "")
                             continue;
                         score = 0;
@@ -405,24 +477,46 @@ public class EngineIPC {
                         coverage = 0;
                         for (String a : queryArr) {
                             total += a.length();
-                            if (!search2.DL_light(b, a, search2.Mode.FAST).match)
+                            if (!(temp = search2.DL_light(b, a, search2.Mode.FAST)).match)
                                 continue;
-                            score += search2.DL_light(b, a, search2.Mode.FAST).score * a.length();
-                            coverage += a.length();
+                            score += temp.score * a.length();
+                            if (!x.equalsIgnoreCase("parentName"))
+                                coverage += a.length();
                         }
                         coverage /= total;
                         selectThis = selectThis | (coverage >= 0.5);
                         score /= total;
                         max = Math.max(score, max);
                     }
+                    // if (max > 0.7) {
+                    // for (String a : queryArr) {
+                    // if ((temp = search2.DL_light(node.get("control_type").asText(), a,
+                    // search2.Mode.FAST)).match) {
+                    // // giving extra points for those having control type info like button or
+                    // // checkbox becuase different UI element of different type are more likely to
+                    // // share same name
+                    // max += 0.2;
+                    // selectThis = true;
+                    // break;
+                    // }
+                    // }
+                    // }
+                    if (requestedType != null && max > 0.5
+                            && node.get("control_type").asText().equalsIgnoreCase(requestedType)) {
+                        max += 0.2;
+                    }
                     if (selectThis && max > bestScore) {
                         bestScore = max;
                         bestMatch = node;
                     }
+                    // if (max == 1) {
+                    // System.out.println("SEE");
+                    // }
                 }
                 // send bestMatch
                 if (bestScore == 0)
                     throw new Exception("Failed to find the desired Actionable element");
+                System.out.println(bestMatch);
                 return (bestMatch);
             }
         } catch (Exception e) {
@@ -457,7 +551,7 @@ public class EngineIPC {
                 }
                 click(query, ClickType.SINGLE_CLICK, ClickSide.LEFT);
             } catch (Exception ee) {
-                throw new Exception("Failed to activate Control " + query + " : " + ee);
+                throw new Exception("Failed to activate Control " + query + " : " + ee + "from base: " + e);
             }
         }
     }
@@ -523,7 +617,6 @@ public class EngineIPC {
         for (JsonNode node : list) {
             float coverage1 = 0, coverage2 = 0, score = 0;
             int total = 0;
-            String text;
             for (String q : queryArr) {
                 if (search2.DL_light((node.get("WindowTitle").asText().toLowerCase()), q,
                         search2.Mode.FAST).match) {
@@ -550,43 +643,9 @@ public class EngineIPC {
 
     // testing
     public static void main(String[] args) throws Exception {
-        // send CLI start to Main.py---
-        ProcessBuilder pb = new ProcessBuilder(Paths.get("PyEnv", "Scripts", "python.exe").toAbsolutePath().toString(),
-                "-u",
-                "src/main/py/Main.py");
-        // pb.redirectErrorStream(true);
-        Process py = pb.start();
-        System.out.println("is python alive" + py.isAlive());
-
-        EngineIPC ipc = new EngineIPC(py.getInputStream(), py.getOutputStream());
-        System.out.println("is python alive" + py.isAlive());
-
-        JsonNode report;
-
-        Thread t = new Thread(() -> {
-            try (var r = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(py.getErrorStream()))) {
-                String line;
-                while ((line = r.readLine()) != null) {
-                    System.out.println("[PY-ERR] " + line);
-                }
-            } catch (Exception ignored) {
-            }
-        });
-        t.setDaemon(true);
-        t.start();
-        try {
-            System.out.println("is python alive" + py.isAlive());
-            // System.out.println("I want to listen");
-            report = ipc.recv(); // waits until python response
-            // System.out.println("hey r u listening?????");
-        } catch (Exception e) {
-            System.out.println("is python alive" + py.isAlive());
-            report = new TextNode("");
-            // System.out.println("bye");
-        }
+        // send CLI start to Main.py--- }
         // System.out.println("hey");
-        System.out.println(report.asText());
+        // System.out.println(report.asText());
         // System.out.println("hey");
         // --------------This one is oto list windows and bring froward the one
         // needed-------------------
@@ -681,18 +740,18 @@ public class EngineIPC {
         // }
         // ----------------------------------------------------------------
         // Thread.sleep(5000);
-        try {
-            System.out.println(ipc.getHandle("yoututbe music"));
+        try (EngineIPC ipc = new EngineIPC()) {
+            System.out.println(ipc.findControl(920214, "Save Button"));
             // System.out.println(ipc.findControl(657120, "file"));
         } catch (Exception e) {
             System.out.println(e);
         }
         // ----------------------------------
         // ipc.OCRhandler();
-        ObjectNode cmd = ipc.mapper.createObjectNode();
-        // ipc.send(text);
-        cmd.put("cmd", "SHUTDOWN");
-        ipc.send(cmd);
+        // ObjectNode cmd = ipc.mapper.createObjectNode();
+        // // ipc.send(text);
+        // cmd.put("cmd", "SHUTDOWN");
+        // ipc.send(cmd);
         System.out.println("SHUTDOWN completed");
     }
 }
