@@ -420,7 +420,7 @@ public class referenceTime {
         }
     }
 
-    public static void main(String[] args) {
-        System.out.println(simplify("next weekends"));
-    }
+    // public static void main(String[] args) {
+    // System.out.println(simplify("next weekends"));
+    // }
 }

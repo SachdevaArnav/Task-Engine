@@ -1,0 +1,6 @@
+openTarget("Task Engine Design Doc pdf")
+delay(5000)
+WINDOW Task Engine pdf
+POST
+TextExists("Task Engine")
+END_POST

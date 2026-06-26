@@ -52,3 +52,5 @@ def run(handle,sendRealObjects=False):
         "status":"OK",
         "list":discoveryDictList
         }
+if __name__=="__main__":
+    print(run(591684))

@@ -29,18 +29,18 @@ public class EngineIPC implements AutoCloseable {
         out = new DataOutputStream(py.getOutputStream());
         // System.out.println("is python alive" + py.isAlive());
         JsonNode report;
-        Thread t = new Thread(() -> {
-            try (var r = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(py.getErrorStream()))) {
-                String line;
-                while ((line = r.readLine()) != null) {
-                    System.out.println("[PY-ERR] " + line);
-                }
-            } catch (Exception ignored) {
-            }
-        });
-        t.setDaemon(true);
-        t.start();
+        // Thread t = new Thread(() -> {
+        // try (var r = new java.io.BufferedReader(
+        // new java.io.InputStreamReader(py.getErrorStream()))) {
+        // String line;
+        // while ((line = r.readLine()) != null) {
+        // System.out.println("[PY-ERR] " + line);
+        // }
+        // } catch (Exception ignored) {
+        // }
+        // });
+        // t.setDaemon(true);
+        // t.start();
         report = recv();
     }
 
@@ -214,8 +214,6 @@ public class EngineIPC implements AutoCloseable {
         array.add(a);
         array.add(b);
         output.set("parents", array);
-        if (output.get("text").asText().equalsIgnoreCase("visual studio"))
-            System.out.println("helo:" + output);
         return output;
     }
 
@@ -516,7 +514,6 @@ public class EngineIPC implements AutoCloseable {
                 // send bestMatch
                 if (bestScore == 0)
                     throw new Exception("Failed to find the desired Actionable element");
-                System.out.println(bestMatch);
                 return (bestMatch);
             }
         } catch (Exception e) {
@@ -639,119 +636,5 @@ public class EngineIPC implements AutoCloseable {
             throw new Exception("Cannot find the needed window");
         }
         return bestMatch.get("hwnd").asInt();
-    }
-
-    // testing
-    public static void main(String[] args) throws Exception {
-        // send CLI start to Main.py--- }
-        // System.out.println("hey");
-        // System.out.println(report.asText());
-        // System.out.println("hey");
-        // --------------This one is oto list windows and bring froward the one
-        // needed-------------------
-        // if (report.path("status").asText().equals("Ready")) {
-        // // lets ask for list of windows to chose from
-        // ObjectNode cmd = ipc.mapper.createObjectNode();
-        // cmd.put("cmd", "EXECUTE");
-        // cmd.put("atom", "LIST_WINDOWS");
-        // ipc.send(cmd);
-        // // Wait for response again
-        // String status;
-        // report = ipc.recv();
-        // if ((status = report.path("status").asText()).equalsIgnoreCase("ok")) {
-        // // if successful then check bring forward edge browser
-        // JsonNode windows = report.path("windows");
-        // for (JsonNode window : windows) {
-        // if (window.path("WindowTitle").asText().contains("edge")) {
-        // // Bring edge forward
-        // cmd = ipc.mapper.createObjectNode();
-        // cmd.put("cmd", "EXECUTE");
-        // cmd.put("atom", "FOCUS_WINDOW");
-        // ObjectNode arg = ipc.mapper.createObjectNode();
-        // arg.put("handle", window.path("hwnd").asInt());
-        // cmd.set("args", arg);
-        // ipc.send(cmd);
-        // report = ipc.recv();
-        // if ((status = report.path("status").asText()).equalsIgnoreCase("ok")) {
-        // System.out.println("Sucessfully brought edge forward");
-        // } else if (status.equalsIgnoreCase("error")) {
-        // System.out.println(report.path("error").asText());
-        // }
-        // break;
-        // }
-        // }
-        // } else if (status.equalsIgnoreCase("error")) {
-        // System.out.println(report.path("error"));
-        // }
-        // }
-        // System.out.println("Recieved:" + report.toString());
-        // ---------------------------------------------------------------------------
-
-        // ----------This one is for testing Click and Double click
-        // Thread.sleep(5000);
-        // if (report.path("status").asText().equals("Ready")) {
-        // ObjectNode cmd = ipc.mapper.createObjectNode();
-        // cmd.put("cmd", "EXECUTE");
-        // cmd.put("atom", "DOUBLE_CLICK");
-        // ipc.send(cmd);
-        // String status;
-        // report = ipc.recv();
-        // if ((status = report.path("status").asText()).equalsIgnoreCase("ok")) {
-        // System.out.println("YES DONE YAYY!!");
-        // } else if (status.equalsIgnoreCase("error")) {
-        // System.out.println(report.path("error").asText());
-        // }
-        // }
-        // --------------------MouseMove
-        // if (report.get("status").asText().equalsIgnoreCase("Ready")) {
-        // ObjectNode cmd = ipc.mapper.createObjectNode();
-        // cmd.put("cmd", "EXECUTE");
-        // cmd.put("atom", "MOVE_MOUSE");
-        // ObjectNode _args = ipc.mapper.createObjectNode();
-        // _args.put("x", 0);
-        // _args.put("y", 0);
-        // cmd.set("args", _args);
-        // ipc.send(cmd);
-        // report = ipc.recv();
-        // String status;
-        // if ((status = report.path("status").asText()).equalsIgnoreCase("ok")) {
-        // System.out.println("YES DONE YAYY!!");
-        // } else if (status.equalsIgnoreCase("error")) {
-        // System.out.println(report.path("error").asText());
-        // }
-        // }
-        // --------------------Scrolling testing
-        // Thread.sleep(5000);
-        // if (report.get("status").asText().equalsIgnoreCase("Ready")) {
-        // ObjectNode cmd = ipc.mapper.createObjectNode();
-        // cmd.put("cmd", "EXECUTE");
-        // cmd.put("atom", "SCROLL");
-        // ObjectNode _args = ipc.mapper.createObjectNode();
-        // _args.put("delta", -120 * 9);
-        // cmd.set("args", _args);
-        // ipc.send(cmd);
-        // report = ipc.recv();
-        // String status;
-        // if ((status = report.path("status").asText()).equalsIgnoreCase("ok")) {
-        // System.out.println("YES DONE YAYY!!")
-        // } else if (status.equalsIgnoreCase("error")) {
-        // System.out.println(report.path("error").asText());
-        // }
-        // }
-        // ----------------------------------------------------------------
-        // Thread.sleep(5000);
-        try (EngineIPC ipc = new EngineIPC()) {
-            System.out.println(ipc.findControl(920214, "Save Button"));
-            // System.out.println(ipc.findControl(657120, "file"));
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        // ----------------------------------
-        // ipc.OCRhandler();
-        // ObjectNode cmd = ipc.mapper.createObjectNode();
-        // // ipc.send(text);
-        // cmd.put("cmd", "SHUTDOWN");
-        // ipc.send(cmd);
-        System.out.println("SHUTDOWN completed");
     }
 }

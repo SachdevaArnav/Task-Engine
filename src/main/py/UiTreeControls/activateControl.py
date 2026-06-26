@@ -55,7 +55,7 @@ def run(handle,target):
         }
 if __name__=="__main__":
     print("hello")
-    dict={"name":"Bold (Ctrl+B)","control_type":"Button","automation_id":"","class_name":"ToggleButton","enabled":True,"visible":True,"centerX":801,"centerY":483,"height":40,"width":40,"parentName":""}
-    print(run(1182166,dict))
+    dict={'name': 'Save', 'control_type': 'Button', 'automation_id': '1', 'class_name': 'Button', 'enabled': True, 'visible': True, 'centerX': 1638, 'centerY': 973, 'height': 33, 'width': 110, 'parentName': 'Save as'}
+    print(run(2033372,dict))
     print("bye")
 

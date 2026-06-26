@@ -1,10 +1,9 @@
 openTarget("Notepad")
 WINDOW Notepad
 
-activateControl("Edit")
-activateControl("Paste")
 activateControl("File")
 activateControl("Save as")
 delay("1000")
 WINDOW Save as
-activateControl("Save Button")
+activateControl("Cancel")
+WINDOW Notepad

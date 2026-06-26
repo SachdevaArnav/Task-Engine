@@ -375,7 +375,7 @@ public class search2 extends SimpleFileVisitor<Path> {
                 }
             }
         } catch (Exception e) {
-            System.out.println("hello" + e);
+            System.out.println(e);
             TimeArray = new LocalDateTime[] { LocalDateTime.MIN };
         }
         return TimeArray;

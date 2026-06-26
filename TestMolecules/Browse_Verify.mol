@@ -1,0 +1,7 @@
+openTarget("https://example.com")
+WINDOW Example Domain
+delay(2000)
+POST
+TextExists("Example Domain")
+ControlExists("Learn more")
+END_POST
