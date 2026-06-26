@@ -17,8 +17,6 @@ import java.util.Scanner;
  * @date start(18/03/2021)
  */
 public class eFriend {
-    static VoiceToText_Whisper myWhisper;
-
     static void voicemsg(String voice) {
         System.out.println(voice);
         try {

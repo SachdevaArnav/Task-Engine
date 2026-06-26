@@ -3,10 +3,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-    <modelVersion>4.0.0</modelVersion>
+    <modelVersion>1.0.0</modelVersion>
 
-    <groupId>com.yourorg</groupId>
-    <artifactId>your-app</artifactId>
+    <groupId>com.taskengine</groupId>
+    <artifactId>task-engine</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
@@ -16,12 +16,6 @@
     </properties>
 
     <dependencies>
-        <!--for Whisper jni (speech to text processing)-->
-        <dependency>
-            <groupId>io.github.givimad</groupId>
-            <artifactId>whisper-jni</artifactId>
-            <version>1.7.1</version>
-        </dependency>
         <!--jackson (for json prasing)-->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

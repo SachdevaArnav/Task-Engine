@@ -268,8 +268,37 @@ The system combines:
 
 This enables execution in dynamic desktop environments.
 
+Here’s a **clean, GitHub-ready Setup section** matching your Task Engine tone (minimal fluff, engineer-style, not AI-ish):
+
 ---
 
+# Setup
+
+## Prerequisites
+
+* Java 21+
+* Python 3.10.11
+* Maven 3.8+
+* Windows OS (UI Automation + OCR dependency)
+
+---
+
+## Python Environment
+
+```
+python -m venv pyenv
+pyenv\Scripts\activate
+pip install -r requirements.txt
+```
+
+---
+
+## Java Build
+
+```
+mvn clean install
+```
+Execution starts from `Main.java` (console entry point).
 
 # Engineering Characteristics
 
@@ -291,7 +320,7 @@ Task Engine is a deterministic desktop execution runtime that:
 * validates outcomes using explicit postconditions
 * operates as a closed-loop execution engine over Windows environments
 
-## Extension Points (System Evolution)
+# Extension Points (System Evolution)
 
 * Higher-level planning layer for intent decomposition and goal reasoning
 * Expanded execution primitives for richer OS/UI interactions
