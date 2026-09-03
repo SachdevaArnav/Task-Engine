@@ -268,10 +268,6 @@ The system combines:
 
 This enables execution in dynamic desktop environments.
 
-Here’s a **clean, GitHub-ready Setup section** matching your Task Engine tone (minimal fluff, engineer-style, not AI-ish):
-
----
-
 # Setup
 
 ## Prerequisites
